@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#050b1d">
+    <title>LeadFlow AI | Turn Leads Into Customers</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+
+/* =========================================
+   LEADFLOW AI — PREMIUM FULL WIDTH WEBSITE
+========================================= */
+
+:root {
+    --bg: #050b1d;
+    --bg-light: #09142b;
+    --card: #101d3a;
+    --blue: #168dff;
+    --cyan: #20c7ff;
+    --purple: #514cff;
+    --white: #f8fafc;
+    --muted: #c5d0e4;
+    --border: rgba(255,255,255,.10);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 95px;
+    overscroll-behavior-y: none;
+}
+
+body {
+    width: 100%;
+    min-width: 320px;
+    min-height: 100vh;
+    padding-top: 80px;             /* fixed header ki jagah */
+    overflow-x: hidden;
+
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    background: var(--bg);
+    color: var(--white);
+}
+
+main {
+    width: 100%;
+    display: block;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+button, input, select {
+    font: inherit;
+}
+
+:focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 3px;
+}
+
+/* FULL WIDTH CONTAINER */
+
+.container {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding-left: clamp(24px, 7vw, 120px);
+    padding-right: clamp(24px, 7vw, 120px);
+}
+
+
+/* NAVBAR */
+header {
+    width: 100%;
+    height: 80px;
+    padding: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+
+    display: flex;
+    align-items: center;
+
+    background: rgba(3, 8, 24, .96);
+    backdrop-filter: blur(18px);
+    border-bottom: 1px solid var(--border);
+}
+
+nav {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 25px;
+}
+
+.logo {
+    font-size: 27px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    white-space: nowrap;
+}
+
+.logo span {
+    color: var(--blue);
+}
+
+.logo-icon {
+    color: var(--cyan);
+    margin-right: 8px;
+}
+
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: clamp(18px, 3vw, 42px);
+    color: #e2e8f0;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.nav-links a {
+    transition: .25s;
+}
+
+.nav-links a:hover {
+    color: var(--cyan);
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 15px 25px;
+    gap: 10px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(100deg, #14b8ff, #3448ff);
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+    transition: .25s;
+    white-space: nowrap;
+}
+
+.btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 35px rgba(25,120,255,.35);
+}
+
+/* HERO SECTION */
+
+.hero {
+    width: 100%;
+    min-height: 750px;
+    padding: 60px 0 85px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    background:
+        radial-gradient(ellipse at 75% 40%, rgba(0,91,255,.20), transparent 38%),
+        radial-gradient(ellipse at 10% 90%, rgba(0,180,255,.10), transparent 35%),
+        linear-gradient(110deg, #030817, #07132d 60%, #050a1d);
+}
+
+.hero::before {
+    content: "";
+    position: absolute;
+    width: 120%;
+    height: 400px;
+    left: -10%;
+    top: 30%;
+    pointer-events: none;
+    opacity: .3;
+    background: repeating-radial-gradient(
+        ellipse at center,
+        transparent 0 30px,
+        rgba(0,130,255,.16) 31px 32px,
+        transparent 33px 52px
+    );
+    transform: rotate(-7deg);
+}
+
+.hero-grid {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(400px, .8fr);
+    align-items: center;
+    gap: clamp(40px, 5vw, 100px);
+}
+
+.hero-copy {
+    width: 100%;
+    max-width: 850px;
+}
+
+.tag {
+    display: inline-block;
+    padding: 10px 17px;
+    margin-bottom: 28px;
+    border: 1px solid rgba(42,161,255,.45);
+    border-radius: 30px;
+    background: rgba(12,80,180,.15);
+    color: #70caff;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .6px;
+}
+
+.hero h1 {
+    max-width: 850px;
+    font-size: clamp(42px, 5vw, 84px);
+    line-height: 1.06;
+    letter-spacing: -2.5px;
+    margin-bottom: 26px;
+}
+
+.gradient-text {
+    background: linear-gradient(90deg, #20c7ff, #5865ff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.hero-description {
+    max-width: 690px;
+    color: #d3dcee;
+    font-size: 19px;
+    line-height: 1.75;
+}
+
+.hero-actions {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 32px;
+}
+
+.secondary-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 15px 24px;
+    border: 1px solid #244b83;
+    border-radius: 12px;
+    color: white;
+    font-weight: 600;
+    transition: .25s;
+}
+
+.secondary-btn:hover {
+    background: #10203d;
+    border-color: var(--blue);
+}
+
+.stats {
+    display: flex;
+    gap: clamp(30px, 5vw, 75px);
+    margin-top: 45px;
+    flex-wrap: wrap;
+}
+
+.stat strong {
+    display: block;
+    font-size: 28px;
+    margin-bottom: 7px;
+}
+
+.stat span {
+    color: #b8c4da;
+    font-size: 15px;
+}
+
+/* ENQUIRY FORM */
+
+.form-card {
+    width: 100%;
+    max-width: 620px;
+    justify-self: end;
+    padding: clamp(28px, 3.5vw, 48px);
+    border-radius: 26px;
+    background: #fff;
+    color: #101b35;
+    box-shadow: 0 25px 100px rgba(0,80,255,.23);
+}
+
+.form-card h2 {
+    font-size: 30px;
+    margin-bottom: 10px;
+}
+
+.form-card > p {
+    color: #475569;
+    font-size: 15px;
+    line-height: 1.65;
+    margin-bottom: 28px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 9px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f1b36;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    min-height: 56px;
+    padding: 16px;
+    border: 1.5px solid #c3cee0;
+    background: #f8faff;
+    border-radius: 11px;
+    outline: none;
+    color: #0f1b36;
+    font-size: 16px;
+    transition: .2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 4px rgba(38,138,255,.10);
+}
+
+.form-group input::placeholder {
+    color: #7b8aa3;
+}
+
+.submit-btn {
+    width: 100%;
+    min-height: 58px;
+    margin-top: 8px;
+    padding: 16px;
+}
+
+.submit-btn:disabled {
+    opacity: .65;
+    cursor: not-allowed;
+}
+
+.secure-text {
+    margin-top: 17px;
+    text-align: center;
+    color: #586783;
+    font-size: 13px;
+}
+
+#form-message {
+    display: none;
+    margin-top: 15px;
+    padding: 13px;
+    border-radius: 9px;
+    font-size: 13px;
+}
+
+#form-message.success {
+    display: block;
+    background: #dcfce7;
+    color: #166534;
+}
+
+#form-message.error {
+    display: block;
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* =========================================
+   ABOUT + LEAD PREVIEW (NEW LAYOUT)
+========================================= */
+
+.about {
+    width: 100%;
+    padding: 110px 0;
+}
+
+.showcase {
+    display: grid;
+    grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+    align-items: center;
+    gap: clamp(36px, 6vw, 100px);
+}
+
+.eyebrow {
+    display: block;
+    margin-bottom: 14px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    color: var(--cyan);
+}
+
+.about-title {
+    font-size: clamp(32px, 4vw, 52px);
+    line-height: 1.12;
+    letter-spacing: -1.8px;
+    margin-bottom: 20px;
+}
+
+.about-desc {
+    max-width: 560px;
+    margin-bottom: 30px;
+    color: #c9d4e8;
+    font-size: 18px;
+    line-height: 1.75;
+}
+
+.check-list {
+    list-style: none;
+    display: grid;
+    gap: 16px;
+}
+
+.check-list li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #e6ecf7;
+    font-size: 17px;
+}
+
+.check-list svg {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    color: var(--cyan);
+}
+
+/* PREVIEW CARD */
+
+.preview {
+    width: 100%;
+    padding: 34px clamp(22px, 3vw, 34px) 34px;
+    border-radius: 28px;
+    background:
+        radial-gradient(circle at 90% 0%, rgba(38,105,255,.18), transparent 45%),
+        linear-gradient(150deg, #112046, #0a1530);
+    border: 1px solid rgba(65,132,255,.40);
+    box-shadow:
+        0 30px 80px rgba(0,0,0,.35),
+        0 0 50px rgba(30,100,255,.10);
+}
+
+.preview-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid rgba(255,255,255,.09);
+}
+
+.preview-heading {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.avatar {
+    flex-shrink: 0;
+    width: 58px;
+    height: 58px;
+    display: grid;
+    place-items: center;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #168dff, #514cff);
+    box-shadow: 0 6px 20px rgba(22,141,255,.30);
+}
+
+.avatar svg {
+    width: 26px;
+    height: 26px;
+}
+
+.preview-heading strong {
+    display: block;
+    font-size: 18px;
+    color: #fff;
+}
+
+.preview-heading small {
+    display: block;
+    margin-top: 4px;
+    color: #c8d5ee;
+    font-size: 14px;
+}
+
+.badge {
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: rgba(34,197,94,.14);
+    border: 1px solid rgba(34,197,94,.40);
+    color: #6ee7a0;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.score-row {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 26px 0 18px;
+}
+
+.score-ring {
+    --p: 86;
+    flex-shrink: 0;
+    width: 82px;
+    height: 82px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: conic-gradient(var(--cyan) calc(var(--p) * 1%), rgba(255,255,255,.08) 0);
+}
+
+.score-ring span {
+    width: 68px;
+    height: 68px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: #0d1a38;
+    font-size: 22px;
+    font-weight: 800;
+}
+
+.score-row strong {
+    display: block;
+    font-size: 18px;
+}
+
+.score-row small {
+    display: block;
+    margin-top: 4px;
+    color: #c8d5ee;
+    font-size: 14px;
+}
+
+.preview-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 20px 5px;
+    border-bottom: 1px solid rgba(255,255,255,.09);
+    font-size: 16px;
+}
+
+.preview-line span:first-child {
+    color: #c8d5ee;
+}
+
+.preview-line span:last-child {
+    color: #fff;
+    font-weight: 600;
+    text-align: right;
+}
+
+.preview-footer {
+    margin-top: 18px;
+    padding: 18px;
+    text-align: center;
+    border-radius: 14px;
+    background: rgba(32,199,255,.08);
+    color: #5ed0ff;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* FEATURES */
+
+.features {
+    width: 100%;
+    padding: 95px 0;
+    background: linear-gradient(180deg, #081126, #0a1630);
+    border-bottom: 1px solid var(--border);
+}
+
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 25px;
+    width: 100%;
+}
+
+.feature-card {
+    min-height: 230px;
+    padding: 32px 27px;
+    background: linear-gradient(145deg, #101d3a, #0a142b);
+    border: 1px solid #1b315a;
+    border-radius: 20px;
+    transition: .3s;
+}
+
+.feature-card:hover {
+    transform: translateY(-8px);
+    border-color: #287bff;
+    background: linear-gradient(145deg, #142750, #0c1835);
+    box-shadow: 0 15px 45px rgba(0,80,255,.13);
+}
+
+.feature-icon {
+    width: 54px;
+    height: 54px;
+    display: grid;
+    place-items: center;
+    margin-bottom: 24px;
+    border-radius: 15px;
+    background: linear-gradient(135deg, #123d8d, #292c91);
+    font-size: 25px;
+}
+
+.feature-card h3 {
+    margin-bottom: 12px;
+    font-size: 20px;
+}
+
+.feature-card p {
+    color: #c5d0e4;
+    font-size: 15.5px;
+    line-height: 1.7;
+}
+
+/* HOW IT WORKS */
+
+.how {
+    width: 100%;
+    padding: 110px 0;
+    background:
+        radial-gradient(ellipse at 50% 0%, rgba(27,83,180,.14), transparent 55%),
+        #050b1d;
+}
+
+.section-title {
+    text-align: center;
+    font-size: clamp(32px, 4vw, 48px);
+    letter-spacing: -1.5px;
+    margin-bottom: 16px;
+}
+
+.section-description {
+    max-width: 680px;
+    margin: 0 auto 60px;
+    text-align: center;
+    color: #b8c4da;
+    font-size: 18px;
+    line-height: 1.75;
+}
+
+.steps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 26px;
+}
+
+.step {
+    text-align: center;
+    padding: 45px 30px;
+    background: #0d1932;
+    border: 1px solid #1c3155;
+    border-radius: 22px;
+    transition: .3s;
+}
+
+.step:hover {
+    transform: translateY(-7px);
+    border-color: #287bff;
+}
+
+.step-number {
+    width: 58px;
+    height: 58px;
+    margin: 0 auto 23px;
+    display: grid;
+    place-items: center;
+    border-radius: 17px;
+    background: linear-gradient(120deg, #168dff, #524cff);
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.step h3 {
+    font-size: 21px;
+    margin-bottom: 13px;
+}
+
+.step p {
+    color: #c0cce0;
+    font-size: 15.5px;
+    line-height: 1.7;
+}
+
+/* CALL TO ACTION */
+
+.cta {
+    width: calc(100% - clamp(48px, 14vw, 240px));
+    margin: 0 auto 90px;
+    padding: 85px 30px;
+    text-align: center;
+    border: 1px solid #3455a8;
+    border-radius: 26px;
+    background:
+        radial-gradient(circle at 50% 0%, rgba(68,155,255,.25), transparent 65%),
+        linear-gradient(110deg, #10275a, #172b77);
+}
+
+.cta h2 {
+    font-size: clamp(30px, 4vw, 46px);
+    margin-bottom: 16px;
+}
+
+.cta p {
+    max-width: 650px;
+    margin: 0 auto 28px;
+    color: #dbe6fb;
+    font-size: 18px;
+    line-height: 1.8;
+}
+
+/* FOOTER — NORMAL PAGE FLOW */
+
+footer {
+    position: static;
+    width: 100%;
+    min-height: 90px;
+    padding: 38px 24px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-top: 1px solid var(--border);
+    background: #030817;
+    color: #b0bcd2;
+    font-size: 14px;
+    text-align: center;
+}
+
+/* LARGE SCREENS */
+
+@media (min-width: 1600px) {
+    .container {
+        padding-left: 9vw;
+        padding-right: 9vw;
+    }
+
+    .hero {
+        min-height: 820px;
+    }
+}
+
+/* TABLETS */
+
+@media (max-width: 1000px) {
+    .hero {
+        min-height: auto;
+        padding: 85px 0;
+    }
+
+    .hero-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 35px;
+    }
+
+    .hero h1 {
+        font-size: clamp(42px, 5vw, 58px);
+    }
+
+    .form-card {
+        padding: 27px;
+    }
+
+    .showcase {
+        grid-template-columns: 1fr;
+    }
+
+    .feature-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .steps {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* MOBILE */
+
+@media (max-width: 650px) {
+    .container {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+    header {
+        padding: 16px 0;
+    }
+
+    .logo {
+        font-size: 21px;
+    }
+
+    .nav-links {
+        display: none;
+    }
+
+    .hero {
+        padding: 55px 0;
+    }
+
+    .hero-grid {
+        grid-template-columns: 1fr;
+        gap: 40px;
+    }
+
+    .hero-copy {
+        text-align: left;
+    }
+
+    .hero h1 {
+        font-size: clamp(38px, 10vw, 49px);
+        letter-spacing: -1.8px;
+    }
+
+    .hero-description {
+        font-size: 16px;
+    }
+
+    .hero-actions {
+        gap: 10px;
+    }
+
+    .stats {
+        gap: 23px;
+    }
+
+    .stat strong {
+        font-size: 22px;
+    }
+
+    .form-card {
+        max-width: none;
+        padding: 25px 20px;
+    }
+
+    .about {
+        padding: 70px 0;
+    }
+
+    .about-title {
+        font-size: 30px;
+        letter-spacing: -1px;
+    }
+
+    .about-desc {
+        font-size: 16px;
+    }
+
+    .check-list li {
+        font-size: 15px;
+        align-items: flex-start;
+    }
+
+    .preview {
+        padding: 22px 18px;
+        border-radius: 20px;
+    }
+
+    .preview-top {
+        flex-wrap: wrap;
+    }
+
+    .avatar {
+        width: 48px;
+        height: 48px;
+    }
+
+    .preview-heading strong {
+        font-size: 16px;
+    }
+
+    .score-ring {
+        width: 70px;
+        height: 70px;
+    }
+
+    .score-ring span {
+        width: 58px;
+        height: 58px;
+        font-size: 19px;
+    }
+
+    .preview-line {
+        padding: 15px 0;
+        font-size: 14px;
+    }
+
+    .preview-footer {
+        font-size: 14px;
+        padding: 14px;
+    }
+
+    .features {
+        padding: 65px 0;
+    }
+
+    .feature-grid,
+    .steps {
+        grid-template-columns: 1fr;
+    }
+
+    .feature-card {
+        min-height: auto;
+    }
+
+    .how {
+        padding: 75px 0;
+    }
+
+    .section-title {
+        font-size: 29px;
+    }
+
+    .cta {
+        width: calc(100% - 40px);
+        padding: 55px 20px;
+        margin-bottom: 50px;
+    }
+
+    .cta h2 {
+        font-size: 27px;
+    }
+}
+    </style>
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <header>
+        <div class="container">
+            <nav>
+                <a href="#" class="logo">
+                    <span class="logo-icon">▥</span>LeadFlow <span>AI</span>
+                </a>
+
+                <div class="nav-links">
+                    <a href="#">Home</a>
+                    <a href="#about">About</a>
+                    <a href="#services">Services</a>
+                    <a href="#how">How It Works</a>
+                    <a href="#contact">Contact</a>
+                </div>
+
+                <a href="#contact" class="btn">Get Started →</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- HERO -->
+    <main>
+        <section class="hero">
+            <div class="container hero-grid">
+
+                <div class="hero-copy">
+                    <div class="tag">✦ AI POWERED LEAD AUTOMATION</div>
+
+                    <h1>
+                        Turn Your Visitors<br>
+                        into Real <span class="gradient-text">Customers</span>
+                    </h1>
+
+                    <p class="hero-description">
+                        Capture leads, automate follow-ups, and grow your business
+                        with AI. LeadFlow AI helps you manage, track, and convert
+                        every lead — automatically.
+                    </p>
+
+                    <div class="hero-actions">
+                        <a href="#contact" class="btn">Get a Free Demo →</a>
+                        <a href="#how" class="secondary-btn">▶ View How It Works</a>
+                    </div>
+
+                    <div class="stats">
+                        <div class="stat">
+                            <strong>AI</strong>
+                            <span>Lead Scoring</span>
+                        </div>
+                        <div class="stat">
+                            <strong>24/7</strong>
+                            <span>Lead Capture</span>
+                        </div>
+                        <div class="stat">
+                            <strong>Auto</strong>
+                            <span>Follow-ups</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FORM -->
+                <div class="form-card" id="contact">
+                    <h2>Get in touch</h2>
+                    <p>Tell us what you need. Our team will get back to you shortly.</p>
+
+                    <form id="leadForm">
+
+                        <div class="form-group">
+                            <label for="name">Full Name</label>
+                            <input
+                                type="text"
+                                id="name"
+                                name="name"
+                                placeholder="Enter your full name"
+                                minlength="2"
+                                maxlength="100"
+                                autocomplete="name"
+                                required
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                placeholder="Enter your email address"
+                                maxlength="150"
+                                autocomplete="email"
+                                required
+                            >
+                        </div>
+                        <div class="form-group">
+                        <label for="phone">WhatsApp Phone Number</label>
+                        <input
+                            type="tel"
+                            id="phone"
+                            name="phone"
+                            placeholder="+91 9876543210"
+                            maxlength="20"
+                            autocomplete="tel"
+                            required
+                        >
+                    </div>
+
+                        <div class="form-group">
+                            <label for="service">Service Required</label>
+                            <select id="service" name="service" required>
+                                <option value="">Select a service</option>
+                                <option value="AI Automation">AI Automation</option>
+                                <option value="Website Development">Website Development</option>
+                                <option value="Digital Marketing">Digital Marketing</option>
+                                <option value="Other">Other Services</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn submit-btn" id="submitBtn">
+                            Submit Enquiry →
+                        </button>
+
+                        <div id="form-message" role="status" aria-live="polite"></div>
+
+                        <div class="secure-text">
+                            🔒 Your information is handled securely.
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ABOUT + LEAD PREVIEW -->
+        <section class="about" id="about">
+            <div class="container showcase">
+
+                <div class="about-copy">
+                    <span class="eyebrow">About LeadFlow AI</span>
+                    <h2 class="about-title">Every enquiry, handled the moment it arrives</h2>
+                    <p class="about-desc">
+                        Stop losing leads in inboxes and spreadsheets. LeadFlow AI captures
+                        each enquiry, stores it safely and alerts your team instantly.
+                    </p>
+
+                    <ul class="check-list">
+                        <li>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>
+                            Validated data stored directly in PostgreSQL
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>
+                            Leads classified by priority with lead scoring
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>
+                            Automated workflows with n8n and email alerts
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="preview">
+                    <div class="preview-top">
+                        <div class="preview-heading">
+                            <div class="avatar">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>
+                            </div>
+                            <div>
+                                <strong>New Lead Received</strong>
+                                <small>LeadFlow AI automation preview</small>
+                            </div>
+                        </div>
+                        <span class="badge">Hot lead</span>
+                    </div>
+
+                    <div class="score-row">
+                        <div class="score-ring" style="--p:86"><span>86</span></div>
+                        <div>
+                            <strong>Lead score (sample)</strong>
+                            <small>Prioritised automatically</small>
+                        </div>
+                    </div>
+
+                    <div class="preview-line">
+                        <span>Lead Capture</span>
+                        <span>Website Form</span>
+                    </div>
+                    <div class="preview-line">
+                        <span>Database</span>
+                        <span>PostgreSQL</span>
+                    </div>
+                    <div class="preview-line">
+                        <span>Automation</span>
+                        <span>n8n Workflow</span>
+                    </div>
+                    <div class="preview-line">
+                        <span>Notifications</span>
+                        <span>Email Alerts</span>
+                    </div>
+
+                    <div class="preview-footer">
+                        ✦ One connected lead management workflow
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- FEATURES -->
+        <section class="features" id="services">
+            <div class="container feature-grid">
+
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Capture Leads</h3>
+                    <p>Collect customer enquiries through a professional website form.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">⚙️</div>
+                    <h3>AI Lead Scoring</h3>
+                    <p>Calculate lead scores and classify leads by priority.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">✉️</div>
+                    <h3>Instant Notifications</h3>
+                    <p>Connect automated workflows to notify your business.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Track & Manage</h3>
+                    <p>Store and manage your leads in your connected database.</p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- HOW IT WORKS -->
+        <section class="how" id="how">
+            <div class="container">
+                <h2 class="section-title">
+                    How LeadFlow AI Works
+                </h2>
+
+                <p class="section-description">
+                    From the first enquiry to automated notifications,
+                    manage your leads through one connected workflow.
+                </p>
+
+                <div class="steps">
+
+                    <div class="step">
+                        <div class="step-number">01</div>
+                        <h3>Customer Enquiry</h3>
+                        <p>A customer fills out the enquiry form on your website.</p>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-number">02</div>
+                        <h3>Process & Store</h3>
+                        <p>FastAPI validates the details and stores the lead in PostgreSQL.</p>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-number">03</div>
+                        <h3>Automate & Notify</h3>
+                        <p>n8n can send the lead to Google Sheets and trigger email alerts.</p>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA -->
+        <section class="container">
+            <div class="cta">
+                <h2>Ready to manage your leads smarter?</h2>
+                <p>Start with LeadFlow AI and simplify your lead management process.</p>
+                <a href="#contact" class="btn">Send an Enquiry →</a>
+            </div>
+        </section>
+
+    </main>
+
+    <footer>
+        © 2026 LeadFlow AI. All rights reserved.
+    </footer>
+
+
+    <!-- FORM JAVASCRIPT -->
+    <script>
+        const leadForm = document.getElementById("leadForm");
+        const submitBtn = document.getElementById("submitBtn");
+        const formMessage = document.getElementById("form-message");
+
+        leadForm.addEventListener("submit", async function (event) {
+            event.preventDefault();
+
+                const leadData = {
+                    name: document.getElementById("name").value.trim(),
+                    email: document.getElementById("email").value.trim(),
+                    phone: document.getElementById("phone").value.trim(),
+                    service: document.getElementById("service").value
+                };
+
+            formMessage.className = "";
+            formMessage.textContent = "";
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Submitting...";
+
+            try {
+                // Page FastAPI server se open honi chahiye (http://127.0.0.1:8000),
+                // file:// ya Live Server se nahi.
+                if (location.protocol === "file:") {
+                    throw new Error(
+                        "Page file se open hui hai. Server chalao aur http://127.0.0.1:8000 par open karo."
+                    );
+                }
+
+                const response = await fetch("/leads", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(leadData)
+                });
+
+                const responseText = await response.text();
+
+                let result = {};
+                let parsed = true;
+
+                try {
+                    result = responseText ? JSON.parse(responseText) : {};
+                } catch {
+                    parsed = false;
+                }
+
+                if (!response.ok) {
+                    console.error(
+                        "POST /leads failed:",
+                        response.status,
+                        response.statusText,
+                        responseText
+                    );
+
+                    let detail;
+
+                    if (Array.isArray(result.detail)) {
+                        detail = result.detail.map(item => item.msg).join(", ");
+                    } else if (typeof result.detail === "string" && result.detail) {
+                        detail = result.detail;
+                    } else {
+                        detail = "Server replied with HTTP " + response.status +
+                            (response.statusText ? " " + response.statusText : "") + ".";
+                    }
+
+                    throw new Error(detail);
+                }
+
+                if (!parsed) {
+                    console.error("Unexpected non-JSON response:", responseText);
+                    throw new Error(
+                        "Unexpected response. Make sure the site is opened from the FastAPI server."
+                    );
+                }
+
+                formMessage.textContent =
+                    "✓ Your enquiry has been submitted successfully! Thank you.";
+
+                formMessage.className = "success";
+                leadForm.reset();
+
+            } catch (error) {
+                console.error("Lead submission error:", error);
+
+                formMessage.textContent = "Unable to submit: " + error.message;
+                formMessage.className = "error";
+
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Submit Enquiry →";
+            }
+        });
+    </script>
+
+</body>
+</html>
