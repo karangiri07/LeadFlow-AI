@@ -1,17 +1,14 @@
 import os
 
-
-from fastapi.responses import FileResponse, PlainTextResponse, JSONResponse
-from pathlib import Path
-from ai_agent import calculate_lead_score, calculate_priority
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi.responses import FileResponse, PlainTextResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr, Field
 
+from ai_agent import calculate_lead_score, calculate_priority
 from database import engine, Base, get_db
 from models import Lead
 from automation import send_lead_to_n8n
-
 
 app = FastAPI(title="LeadFlow AI")
 # Create database tables
