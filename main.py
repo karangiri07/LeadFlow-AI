@@ -1,4 +1,7 @@
-from fastapi.responses import FileResponse
+import os
+
+
+from fastapi.responses import FileResponse, PlainTextResponse, JSONResponse
 from pathlib import Path
 from ai_agent import calculate_lead_score, calculate_priority
 from fastapi import FastAPI, Depends, HTTPException
@@ -11,7 +14,6 @@ from automation import send_lead_to_n8n
 
 
 app = FastAPI(title="LeadFlow AI")
-
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
@@ -28,6 +30,12 @@ class LeadCreate(BaseModel):
 @app.get("/")
 def home():
     return FileResponse("static/index.html")
+
+
+# Dashboard - Serve LeadFlow AI Dashboard
+@app.get("/dashboard")
+def dashboard():
+    return FileResponse("static/dashboard.html")
 
 
 # GET: Fetch all leads
@@ -168,3 +176,20 @@ def search_leads(
     ).all()
 
     return leads
+
+# WhatsApp Webhook Verification
+@app.get("/webhook")
+def verify_whatsapp_webhook(
+    hub_mode: str = Query(None, alias="hub.mode"),
+    hub_verify_token: str = Query(None, alias="hub.verify_token"),
+    hub_challenge: str = Query(None, alias="hub.challenge")
+):
+    verify_token = os.getenv("WHATSAPP_VERIFY_TOKEN")
+
+    if hub_mode == "subscribe" and hub_verify_token == verify_token:
+        return PlainTextResponse(content=hub_challenge)
+
+    raise HTTPException(
+        status_code=403,
+        detail="Webhook verification failed"
+    )
