@@ -1,6 +1,6 @@
 import os
 
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, Request
 from fastapi.responses import FileResponse, PlainTextResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr, Field
@@ -190,3 +190,13 @@ def verify_whatsapp_webhook(
         status_code=403,
         detail="Webhook verification failed"
     )
+    # Receive WhatsApp Webhook Events
+@app.post("/webhook")
+async def receive_whatsapp_webhook(request: Request):
+
+    data = await request.json()
+
+    print("WhatsApp Webhook Received:")
+    print(data)
+
+    return {"status": "received"}
