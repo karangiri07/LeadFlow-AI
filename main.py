@@ -34,6 +34,19 @@ def home():
 def dashboard():
     return FileResponse("static/dashboard.html")
 
+@app.get("/privacy")
+def privacy_policy():
+    return FileResponse("static/privacy.html")
+
+
+@app.get("/data-deletion")
+def data_deletion():
+    return FileResponse("static/data-deletion.html")
+
+
+@app.get("/terms")
+def terms_of_service():
+    return FileResponse("static/terms.html")
 
 # GET: Fetch all leads
 @app.get("/leads")
