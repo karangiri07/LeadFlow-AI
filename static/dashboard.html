@@ -1,0 +1,1630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LeadFlow AI | WhatsApp RAG Admin Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0f172a;
+  --navy-light: #1e293b;
+  --blue: #2563eb;
+  --blue-hover: #1d4ed8;
+  --emerald: #10b981;
+  --emerald-bg: #ecfdf5;
+  --emerald-border: #a7f3d0;
+  --amber: #f59e0b;
+  --amber-bg: #fffbeb;
+  --rose: #ef4444;
+  --bg: #f8fafc;
+  --card-bg: #ffffff;
+  --line: #e2e8f0;
+  --muted: #64748b;
+  --ink: #0f172a;
+  --wa-green: #25d366;
+  --wa-dark: #075e54;
+  --wa-light: #dcf8c6;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif;
+  font-size: 14px;
+}
+.app {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+}
+.sidebar {
+  background: var(--navy);
+  color: #cbd5e1;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 8px 28px;
+}
+.logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2563eb, #10b981);
+  display: grid;
+  place-items: center;
+  color: white;
+  font-weight: 800;
+  font-size: 20px;
+}
+.brand b { color: white; font-size: 16px; display: block; }
+.brand small { color: #94a3b8; font-size: 11px; }
+
+.nav-label {
+  color: #64748b;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 14px 10px 6px;
+  font-weight: 700;
+}
+.nav button {
+  width: 100%;
+  border: 0;
+  background: none;
+  color: #94a3b8;
+  padding: 10px 12px;
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
+  margin: 2px 0;
+  font-size: 13.5px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.15s ease;
+}
+.nav button:hover, .nav button.active {
+  background: var(--navy-light);
+  color: #ffffff;
+}
+.nav button.active {
+  border-left: 3px solid var(--emerald);
+}
+.user {
+  margin-top: auto;
+  border-top: 1px solid #334155;
+  padding: 18px 8px 0;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #e2e8f0;
+  color: #1e293b;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.user small { display: block; color: #94a3b8; font-size: 11px; }
+
+main { min-width: 0; }
+.top {
+  height: 64px;
+  background: white;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+}
+.crumb { color: var(--muted); font-size: 13px; }
+.crumb b { color: var(--ink); }
+.pill-live {
+  font-size: 11px;
+  border: 1px solid var(--emerald-border);
+  background: var(--emerald-bg);
+  color: #065f46;
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.pill-live::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+}
+
+.content {
+  padding: 24px 28px;
+  max-width: 1440px;
+  margin: auto;
+}
+.heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.eyebrow {
+  color: var(--blue);
+  font-size: 11px;
+  letter-spacing: 1px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.heading h1 {
+  font-size: 24px;
+  font-weight: 800;
+  margin: 4px 0 2px;
+}
+.heading p { color: var(--muted); margin: 0; font-size: 13px; }
+
+.btn {
+  border: 1px solid var(--line);
+  background: white;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+.btn:hover { background: #f8fafc; }
+.btn.primary {
+  background: var(--blue);
+  color: white;
+  border-color: var(--blue);
+}
+.btn.primary:hover { background: var(--blue-hover); }
+.btn.success {
+  background: #059669;
+  color: white;
+  border-color: #059669;
+}
+.btn.sm { padding: 5px 10px; font-size: 12px; }
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.card, .stat {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.stat { padding: 18px; }
+.stat label { color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; }
+.stat strong { display: block; font-size: 26px; font-weight: 800; margin: 8px 0 2px; color: var(--ink); }
+.stat small { color: var(--muted); font-size: 11px; }
+
+.section { display: none; }
+.section.active { display: block; }
+
+/* INBOX GRID */
+.inbox-card {
+  display: grid;
+  grid-template-columns: 310px 1fr 280px;
+  height: calc(100vh - 190px);
+  min-height: 600px;
+  overflow: hidden;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.contact-list {
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+}
+.list-head {
+  padding: 14px;
+  border-bottom: 1px solid var(--line);
+  background: white;
+}
+.search-input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 13px;
+}
+.search-input:focus { outline: none; border-color: var(--blue); }
+.contacts-scroll {
+  flex: 1;
+  overflow-y: auto;
+}
+.contact-item {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  transition: background 0.1s ease;
+}
+.contact-item:hover { background: #f1f5f9; }
+.contact-item.active {
+  background: #eef2ff;
+  border-left: 3px solid var(--blue);
+}
+.contact-info {
+  flex: 1;
+  min-width: 0;
+}
+.contact-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 3px;
+}
+.contact-name {
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.contact-time {
+  font-size: 11px;
+  color: var(--muted);
+}
+.contact-preview {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.badge-unread {
+  background: #10b981;
+  color: white;
+  border-radius: 10px;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.badge-tag {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+.badge-hot { background: #fee2e2; color: #b91c1c; }
+.badge-warm { background: #fef3c7; color: #b45309; }
+.badge-cold { background: #e0e7ff; color: #4338ca; }
+
+/* CHAT AREA */
+.chat-area {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: #ffffff;
+}
+.chat-head {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: white;
+}
+.chat-head-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.msg-bubble {
+  max-width: 75%;
+  border-radius: 12px;
+  padding: 11px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+.msg-bubble.user {
+  align-self: flex-start;
+  background: white;
+  border: 1px solid var(--line);
+  border-bottom-left-radius: 3px;
+}
+.msg-bubble.bot {
+  align-self: flex-end;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-bottom-right-radius: 3px;
+}
+.msg-bubble.agent {
+  align-self: flex-end;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-bottom-right-radius: 3px;
+}
+.msg-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.msg-badge.bot { color: #166534; }
+.msg-badge.agent { color: #1e40af; }
+.msg-meta {
+  font-size: 10.5px;
+  color: #94a3b8;
+  margin-top: 5px;
+  text-align: right;
+}
+.rag-sources-box {
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: rgba(255,255,255,0.7);
+  border: 1px dashed #86efac;
+  border-radius: 6px;
+  font-size: 11px;
+  color: #14532d;
+}
+.rag-sources-title {
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.rag-chunk-item {
+  margin-top: 4px;
+  padding: 4px 6px;
+  background: white;
+  border-radius: 4px;
+  font-size: 10.5px;
+}
+
+.canned-chips {
+  padding: 6px 18px;
+  background: #f8fafc;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+}
+.chip {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: #475569;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.chip:hover { background: #f1f5f9; color: var(--ink); }
+
+.chat-composer {
+  padding: 12px 18px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 8px;
+  background: white;
+}
+.chat-composer input {
+  flex: 1;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+}
+.chat-composer input:focus { outline: none; border-color: var(--blue); }
+
+/* PROFILE SIDEBAR */
+.chat-profile {
+  border-left: 1px solid var(--line);
+  padding: 20px;
+  background: white;
+  overflow-y: auto;
+}
+.profile-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 18px 0 8px;
+}
+.profile-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 12px;
+}
+.profile-row span { color: var(--muted); }
+.profile-row b { color: var(--ink); }
+
+/* KNOWLEDGE BASE TAB */
+.kb-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.kb-card {
+  padding: 20px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.form-group {
+  margin-bottom: 14px;
+}
+.form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: var(--ink);
+}
+.form-group input, .form-group textarea, .form-group select {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+}
+.doc-item {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 12px;
+  background: #f8fafc;
+}
+.doc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+/* LEADS TABLE */
+.leads-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.leads-table th {
+  text-align: left;
+  padding: 12px 14px;
+  border-bottom: 2px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.leads-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.score-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 11px;
+  background: #f1f5f9;
+}
+
+/* MODAL */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,0.6);
+  display: none;
+  place-items: center;
+  z-index: 999;
+}
+.modal-overlay.active { display: grid; }
+.modal {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 480px;
+  padding: 24px;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+}
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--navy);
+  color: white;
+  padding: 12px 18px;
+  border-radius: 8px;
+  display: none;
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 1000;
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2);
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">⚡</div>
+      <div>
+        <b>LeadFlow AI</b>
+        <small>WhatsApp RAG Center</small>
+      </div>
+    </div>
+
+    <div class="nav-label">Live Traffic</div>
+    <nav class="nav">
+      <button class="active" data-page="inbox">
+        <span>💬</span> WhatsApp Inbox
+      </button>
+      <button data-page="overview">
+        <span>📊</span> Overview & Traffic
+      </button>
+      <button data-page="leads">
+        <span>🎯</span> Qualified Leads
+      </button>
+    </nav>
+
+    <div class="nav-label">AI & Automation</div>
+    <nav class="nav">
+      <button data-page="knowledge">
+        <span>🧠</span> RAG Knowledge Base
+      </button>
+      <button data-page="workflows">
+        <span>⚡</span> Automations & n8n
+      </button>
+    </nav>
+
+    <div class="nav-label">Settings</div>
+    <nav class="nav">
+      <button data-page="settings">
+        <span>⚙️</span> Meta Cloud API
+      </button>
+    </nav>
+
+    <div class="user">
+      <div class="avatar" style="background:#2563eb;color:white;">AD</div>
+      <div>
+        <b>Admin Console</b>
+        <small>PostgreSQL + FastAPI Active</small>
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <header class="top">
+      <div class="crumb">Console / <b id="crumbTitle">WhatsApp Inbox</b></div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <span class="pill-live">Backend Online · Port 8000</span>
+        <button class="btn primary sm" onclick="openSimModal()">
+          <span>📱</span> Simulate WhatsApp
+        </button>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- ============================================== -->
+      <!-- SECTION: INBOX (MAIN WHATSAPP ADMIN PANEL) -->
+      <!-- ============================================== -->
+      <section class="section active" id="inbox">
+        <div class="heading">
+          <div>
+            <div class="eyebrow">CUSTOMER TRAFFIC & REPLIES</div>
+            <h1>Live WhatsApp Console</h1>
+            <p>Monitor real-time user traffic, inspect RAG data grounding, and send immediate replies.</p>
+          </div>
+          <button class="btn sm" onclick="loadContacts(true)">
+            <span>🔄</span> Refresh Traffic
+          </button>
+        </div>
+
+        <div class="inbox-card">
+          <!-- LEFT: Contact List -->
+          <div class="contact-list">
+            <div class="list-head">
+              <input type="text" class="search-input" id="contactSearch" placeholder="Search customer or phone..." oninput="filterContacts()">
+            </div>
+            <div class="contacts-scroll" id="contactsContainer">
+              <div style="padding:20px;text-align:center;color:var(--muted)">Loading conversations...</div>
+            </div>
+          </div>
+
+          <!-- CENTER: Live Chat -->
+          <div class="chat-area">
+            <div class="chat-head" id="chatHead">
+              <div class="chat-head-left">
+                <div class="avatar" id="activeAvatar">--</div>
+                <div>
+                  <b id="activeName" style="font-size:14px;">Select a conversation</b>
+                  <div style="color:var(--muted);font-size:11px;" id="activePhone">No active chat</div>
+                </div>
+              </div>
+              <div id="chatActions" style="display:none;gap:8px;">
+                <button class="btn sm" id="btnToggleAI" onclick="toggleAIMode()">
+                  <span>🤖</span> AI Mode Active
+                </button>
+              </div>
+            </div>
+
+            <!-- Messages Stream -->
+            <div class="chat-messages" id="messagesContainer">
+              <div style="text-align:center;margin:auto;color:var(--muted);font-size:13px;">
+                👈 Select a customer conversation from the list to view traffic and reply.
+              </div>
+            </div>
+
+            <!-- Canned Chips -->
+            <div class="canned-chips" id="cannedChips" style="display:none;">
+              <span class="chip" onclick="applyCanned('👋 Hello! How can our AI automation team help your business today?')">👋 Welcome</span>
+              <span class="chip" onclick="applyCanned('💰 Our Starter plan starts at $299/mo and Pro plan is $599/mo. Would you like a breakdown?')">💰 Pricing Sheet</span>
+              <span class="chip" onclick="applyCanned('📅 I can schedule a free 30-min strategy call with our engineers. What time works best?')">📅 Book Call</span>
+              <span class="chip" onclick="applyCanned('🌐 We build custom web apps with FastAPI, React and PostgreSQL delivered in 2 weeks!')">🌐 Web Dev Info</span>
+            </div>
+
+            <!-- Composer -->
+            <form class="chat-composer" id="replyForm" onsubmit="handleSendReply(event)" style="display:none;">
+              <input type="text" id="replyInput" placeholder="Type an immediate manual reply directly to WhatsApp user..." autocomplete="off">
+              <button type="submit" class="btn primary">Send Reply</button>
+            </form>
+          </div>
+
+          <!-- RIGHT: Profile & Lead Meta -->
+          <aside class="chat-profile" id="chatProfile">
+            <div style="text-align:center;padding-bottom:12px;border-bottom:1px solid #f1f5f9;">
+              <div class="avatar" id="profileAvatar" style="margin:0 auto 8px;width:48px;height:48px;font-size:16px;">--</div>
+              <b id="profileName" style="font-size:14px;">Customer Info</b>
+              <p style="color:var(--muted);font-size:11px;margin:3px 0 0;" id="profilePhone">Select chat</p>
+            </div>
+
+            <div class="profile-title">Conversation Details</div>
+            <div class="profile-row">
+              <span>Channel</span>
+              <b>WhatsApp Cloud</b>
+            </div>
+            <div class="profile-row">
+              <span>Status</span>
+              <b id="profileStatus" style="color:var(--emerald);">Active</b>
+            </div>
+            <div class="profile-row">
+              <span>AI Engine</span>
+              <b id="profileAIMode">RAG Grounded</b>
+            </div>
+
+            <div class="profile-title">Lead Qualification</div>
+            <div class="profile-row">
+              <span>Lead Priority</span>
+              <span id="profileLeadPriority" class="badge-tag badge-cold">No Lead</span>
+            </div>
+            <div class="profile-row">
+              <span>Lead Score</span>
+              <b id="profileLeadScore">--</b>
+            </div>
+            <div class="profile-row">
+              <span>Service</span>
+              <b id="profileLeadService">--</b>
+            </div>
+            <div class="profile-row">
+              <span>Lead Email</span>
+              <b id="profileLeadEmail" style="font-size:11px;">--</b>
+            </div>
+
+            <div style="margin-top:24px;">
+              <button class="btn sm" style="width:100%;color:#dc2626;border-color:#fecaca;" onclick="handleDeleteContact()">
+                🗑️ Delete Conversation
+              </button>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- SECTION: OVERVIEW -->
+      <!-- ============================================== -->
+      <section class="section" id="overview">
+        <div class="heading">
+          <div>
+            <div class="eyebrow">EXECUTIVE METRICS</div>
+            <h1>WhatsApp Traffic Analytics</h1>
+            <p>Real-time overview of incoming messages, RAG bot auto-replies, and lead captures.</p>
+          </div>
+          <button class="btn primary" onclick="go('inbox')">Open Live Console →</button>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <label>Active Conversations</label>
+            <strong id="statConversations">0</strong>
+            <small>Stored in PostgreSQL</small>
+          </div>
+          <div class="stat">
+            <label>Inbound Messages</label>
+            <strong id="statInbound">0</strong>
+            <small>Received from WhatsApp users</small>
+          </div>
+          <div class="stat">
+            <label>AI Bot Auto-Replies</label>
+            <strong id="statBotReplies">0</strong>
+            <small>Grounded via RAG Knowledge</small>
+          </div>
+          <div class="stat">
+            <label>Qualified Leads</label>
+            <strong id="statLeads">0</strong>
+            <small>Dispatched to CRM & n8n</small>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:20px;">
+          <div class="card" style="padding:20px;">
+            <h3 style="margin:0 0 16px;font-size:15px;">Automated Resolution & Grounding</h3>
+            <p style="color:var(--muted);font-size:13px;line-height:1.6;">
+              When a WhatsApp user sends a query, the RAG engine performs semantic token matching against the <b>Knowledge Base</b>, extracts the most relatable document chunks, and formats a polite, clear answer.
+            </p>
+            <div style="margin-top:20px;padding:16px;background:#f8fafc;border-radius:8px;border:1px solid var(--line);">
+              <div style="display:flex;justify-content:space-between;font-weight:600;font-size:13px;margin-bottom:8px;">
+                <span>AI Automation Coverage</span>
+                <span id="statCoverage" style="color:var(--emerald);">95%</span>
+              </div>
+              <div style="height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;">
+                <div id="statCoverageBar" style="height:100%;width:95%;background:var(--emerald);border-radius:4px;"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="padding:20px;">
+            <h3 style="margin:0 0 16px;font-size:15px;">Lead Priority Distribution</h3>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
+                <span>🔥 Hot Leads</span>
+                <b id="leadHotCount" style="color:#b91c1c;">0</b>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
+                <span>⚡ Warm Leads</span>
+                <b id="leadWarmCount" style="color:#b45309;">0</b>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
+                <span>❄️ Cold Leads</span>
+                <b id="leadColdCount" style="color:#4338ca;">0</b>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- SECTION: QUALIFIED LEADS -->
+      <!-- ============================================== -->
+      <section class="section" id="leads">
+        <div class="heading">
+          <div>
+            <div class="eyebrow">PIPELINE</div>
+            <h1>Captured Leads</h1>
+            <p>Leads captured automatically from WhatsApp conversations & website forms in PostgreSQL.</p>
+          </div>
+          <button class="btn sm" onclick="loadLeads()">🔄 Refresh Leads</button>
+        </div>
+
+        <div class="card" style="overflow-x:auto;">
+          <table class="leads-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Requested Service</th>
+                <th>Score</th>
+                <th>Priority</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="leadsTableBody">
+              <tr><td colspan="7" style="text-align:center;color:var(--muted);">Loading leads...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- SECTION: RAG KNOWLEDGE BASE -->
+      <!-- ============================================== -->
+      <section class="section" id="knowledge">
+        <div class="heading">
+          <div>
+            <div class="eyebrow">RAG DATA GROUNDING</div>
+            <h1>Knowledge Base & Semantic Grounding</h1>
+            <p>Manage documents, pricing tables, services, and FAQs that the WhatsApp AI chatbot uses to reply.</p>
+          </div>
+        </div>
+
+        <div class="kb-grid">
+          <!-- Add new document form -->
+          <div class="kb-card">
+            <h3 style="margin:0 0 14px;font-size:15px;">➕ Add Knowledge Document</h3>
+            <form onsubmit="handleCreateDoc(event)">
+              <div class="form-group">
+                <label>Document Title</label>
+                <input type="text" id="docTitle" placeholder="e.g. AI Automation Pricing & Packages" required>
+              </div>
+              <div class="form-group">
+                <label>Category</label>
+                <select id="docCategory">
+                  <option value="services">Services & Stack</option>
+                  <option value="pricing">Pricing & Cost</option>
+                  <option value="faq">Frequently Asked Questions</option>
+                  <option value="support">Support & Contacts</option>
+                  <option value="policies">Policies & Guarantees</option>
+                  <option value="general">General</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Keywords / Tags (comma separated)</label>
+                <input type="text" id="docTags" placeholder="e.g. pricing, quote, plans, cost, n8n">
+              </div>
+              <div class="form-group">
+                <label>Knowledge Content (Facts, Numbers, Details)</label>
+                <textarea id="docContent" rows="6" placeholder="Write factual information that the RAG bot will retrieve and use to reply to users..." required></textarea>
+              </div>
+              <button type="submit" class="btn primary">Save to Knowledge Base</button>
+            </form>
+
+            <hr style="border:0;border-top:1px solid var(--line);margin:24px 0 18px;">
+
+            <!-- Test RAG Playground -->
+            <h3 style="margin:0 0 10px;font-size:14px;">🧪 Test RAG Retrieval Live</h3>
+            <div style="display:flex;gap:8px;">
+              <input type="text" id="ragTestInput" class="search-input" placeholder="Type a test question (e.g. what are the plans?)...">
+              <button class="btn sm primary" type="button" onclick="handleTestRAG()">Test</button>
+            </div>
+            <div id="ragTestResult" style="margin-top:12px;display:none;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid var(--line);font-size:12px;"></div>
+          </div>
+
+          <!-- Existing Documents List -->
+          <div class="kb-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+              <h3 style="margin:0;font-size:15px;">📚 Grounded Documents (<span id="docCount">0</span>)</h3>
+              <button class="btn sm" onclick="loadKnowledgeDocs()">🔄 Refresh</button>
+            </div>
+            <div id="docsListContainer" style="max-height:550px;overflow-y:auto;">
+              <div style="text-align:center;color:var(--muted);padding:20px;">Loading documents...</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- SECTION: WORKFLOWS & N8N -->
+      <!-- ============================================== -->
+      <section class="section" id="workflows">
+        <div class="heading">
+          <div>
+            <div class="eyebrow">AUTOMATION INTEGRATIONS</div>
+            <h1>Workflows & Webhooks</h1>
+            <p>End-to-end pipeline connecting WhatsApp traffic, RAG bot, PostgreSQL, and n8n.</p>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <div class="card" style="padding:20px;">
+            <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px;">
+              <div style="font-size:24px;">⚡</div>
+              <div>
+                <h3 style="margin:0;font-size:15px;">FastAPI WhatsApp Webhook</h3>
+                <span class="badge-tag badge-warm">Active Endpoint</span>
+              </div>
+            </div>
+            <p style="color:var(--muted);font-size:12.5px;line-height:1.5;">
+              Listens for Meta WhatsApp events on <code>/webhook</code>, verifies incoming challenges, parses user phone and text, queries the RAG engine, and commits message logs to PostgreSQL.
+            </p>
+            <div class="profile-row" style="margin-top:14px;">
+              <span>Webhook Route</span>
+              <b>POST /webhook</b>
+            </div>
+            <div class="profile-row">
+              <span>Verify Token Route</span>
+              <b>GET /webhook</b>
+            </div>
+          </div>
+
+          <div class="card" style="padding:20px;">
+            <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px;">
+              <div style="font-size:24px;">🔄</div>
+              <div>
+                <h3 style="margin:0;font-size:15px;">n8n Pipeline Integration</h3>
+                <span class="badge-tag badge-hot">Connected</span>
+              </div>
+            </div>
+            <p style="color:var(--muted);font-size:12.5px;line-height:1.5;">
+              When a WhatsApp user shares their email or expresses interest in custom AI solutions, the backend extracts the lead, calculates a score (0-100), and sends the payload to n8n.
+            </p>
+            <div class="profile-row" style="margin-top:14px;">
+              <span>n8n Endpoint</span>
+              <b style="font-size:11px;">http://localhost:5678/webhook/...</b>
+            </div>
+            <div class="profile-row">
+              <span>Lead Scoring</span>
+              <b>Hot / Warm / Cold</b>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- SECTION: SETTINGS -->
+      <!-- ============================================== -->
+      <section class="section" id="settings">
+        <div class="heading">
+          <div>
+            <div class="eyebrow">CONFIGURATION</div>
+            <h1>Meta WhatsApp Cloud API Settings</h1>
+            <p>Connect your official WhatsApp Business phone number or run in developer simulation mode.</p>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <div class="card" style="padding:20px;">
+            <h3 style="margin:0 0 14px;font-size:15px;">Meta Cloud API Credentials</h3>
+            <p style="color:var(--muted);font-size:12.5px;margin-bottom:14px;">
+              Provide your Meta credentials to send real outbound messages to user phones. Leave blank to run in simulation mode.
+            </p>
+            <div class="form-group">
+              <label>WhatsApp Phone Number ID</label>
+              <input type="text" id="settingPhoneId" placeholder="e.g. 104829104810294">
+            </div>
+            <div class="form-group">
+              <label>WhatsApp Cloud API Access Token</label>
+              <input type="password" id="settingToken" placeholder="EAABwz...">
+            </div>
+            <div class="form-group">
+              <label>Webhook Verify Token</label>
+              <input type="text" id="settingVerifyToken" value="leadflow_verify_token">
+            </div>
+            <button class="btn primary sm" onclick="toast('Settings saved in runtime environment')">Save Credentials</button>
+          </div>
+
+          <div class="card" style="padding:20px;">
+            <h3 style="margin:0 0 14px;font-size:15px;">Webhook Configuration Guide</h3>
+            <ol style="color:var(--muted);font-size:12.5px;line-height:1.7;padding-left:18px;">
+              <li>Go to <b>developers.facebook.com</b> > Your App > WhatsApp > Configuration.</li>
+              <li>Set Callback URL to: <code>https://your-public-domain/webhook</code> (use ngrok if testing locally).</li>
+              <li>Set Verify Token to: <code>leadflow_verify_token</code>.</li>
+              <li>Subscribe to the <b>messages</b> webhook field.</li>
+              <li>All incoming messages will trigger the RAG chatbot and appear in this admin panel!</li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- ============================================== -->
+<!-- SIMULATE WHATSAPP MODAL -->
+<!-- ============================================== -->
+<div class="modal-overlay" id="simModal">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3 style="margin:0;font-size:16px;">📱 Simulate Incoming WhatsApp Message</h3>
+      <button class="btn sm" onclick="closeSimModal()">✕</button>
+    </div>
+    <p style="color:var(--muted);font-size:12.5px;margin-bottom:16px;">
+      Send a simulated message from any user phone number to test the RAG engine, knowledge retrieval, and live replies instantly.
+    </p>
+    <form onsubmit="handleSendSimulation(event)">
+      <div class="form-group">
+        <label>User Phone Number</label>
+        <input type="text" id="simPhone" value="+919876543210" required>
+      </div>
+      <div class="form-group">
+        <label>Customer Name</label>
+        <input type="text" id="simName" value="Rahul Sharma" required>
+      </div>
+      <div class="form-group">
+        <label>WhatsApp Message</label>
+        <textarea id="simText" rows="3" placeholder="e.g. What are your pricing plans? Or: I need AI automation, my email is john@xyz.com" required></textarea>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button type="button" class="btn" onclick="closeSimModal()">Cancel</button>
+        <button type="submit" class="btn primary">Send to RAG Bot</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ============================================== -->
+<!-- JAVASCRIPT LOGIC & API CONNECTORS -->
+<!-- ============================================== -->
+<script>
+let contacts = [];
+let activeContactId = null;
+let pollTimer = null;
+
+const pageTitles = {
+  inbox: 'WhatsApp Inbox',
+  overview: 'Overview & Traffic',
+  leads: 'Qualified Leads',
+  knowledge: 'RAG Knowledge Base',
+  workflows: 'Automations & n8n',
+  settings: 'Meta Cloud API Settings'
+};
+
+function go(pageId) {
+  document.querySelectorAll('.section').forEach(s => s.classList.toggle('active', s.id === pageId));
+  document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('active', b.dataset.page === pageId));
+  document.getElementById('crumbTitle').textContent = pageTitles[pageId] || 'Console';
+  window.scrollTo(0, 0);
+
+  if (pageId === 'overview') loadAnalytics();
+  if (pageId === 'leads') loadLeads();
+  if (pageId === 'knowledge') loadKnowledgeDocs();
+}
+
+document.querySelectorAll('.nav button[data-page]').forEach(b => {
+  b.addEventListener('click', () => go(b.dataset.page));
+});
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(() => { t.style.display = 'none'; }, 2800);
+}
+
+// -------------------------------------------------------------
+// Contacts & Live Traffic
+// -------------------------------------------------------------
+async function loadContacts(showToast = false) {
+  try {
+    const res = await fetch('/api/whatsapp/contacts');
+    if (!res.ok) throw new Error('Failed to load contacts');
+    contacts = await res.json();
+    renderContacts();
+
+    if (showToast) toast('Traffic refreshed successfully');
+
+    // Auto select first contact if none selected
+    if (contacts.length > 0 && (!activeContactId || !contacts.find(c => c.id === activeContactId))) {
+      selectContact(contacts[0].id);
+    }
+  } catch (err) {
+    console.error('Error fetching contacts:', err);
+  }
+}
+
+function renderContacts() {
+  const container = document.getElementById('contactsContainer');
+  const search = document.getElementById('contactSearch').value.toLowerCase().trim();
+
+  const filtered = contacts.filter(c => {
+    return c.name.toLowerCase().includes(search) ||
+           c.phone_number.includes(search) ||
+           (c.last_message && c.last_message.toLowerCase().includes(search));
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div style="padding:20px;text-align:center;color:var(--muted)">No conversations found</div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(c => {
+    const initials = c.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'WA';
+    const isActive = c.id === activeContactId ? 'active' : '';
+    const unread = c.unread_count > 0 ? `<span class="badge-unread">${c.unread_count}</span>` : '';
+    
+    let leadBadge = '';
+    if (c.lead) {
+      const cls = c.lead.priority === 'Hot' ? 'badge-hot' : (c.lead.priority === 'Warm' ? 'badge-warm' : 'badge-cold');
+      leadBadge = `<span class="badge-tag ${cls}" style="margin-left:4px;">${c.lead.priority}</span>`;
+    }
+
+    const aiBadge = c.ai_mode === 'auto'
+      ? `<span title="AI Bot Auto-Pilot" style="font-size:11px;">🤖</span>`
+      : `<span title="Human Takeover" style="font-size:11px;">👤</span>`;
+
+    return `
+      <div class="contact-item ${isActive}" onclick="selectContact(${c.id})">
+        <div class="avatar">${initials}</div>
+        <div class="contact-info">
+          <div class="contact-top">
+            <span class="contact-name">${c.name} ${leadBadge}</span>
+            <span class="contact-time">${aiBadge}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span class="contact-preview">${c.last_message || 'No messages yet'}</span>
+            ${unread}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function filterContacts() {
+  renderContacts();
+}
+
+async function selectContact(id) {
+  activeContactId = id;
+  renderContacts();
+
+  const contact = contacts.find(c => c.id === id);
+  if (!contact) return;
+
+  const initials = contact.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'WA';
+  document.getElementById('activeAvatar').textContent = initials;
+  document.getElementById('activeName').textContent = contact.name;
+  document.getElementById('activePhone').textContent = contact.phone_number;
+
+  // Header actions & Composer
+  document.getElementById('chatActions').style.display = 'flex';
+  document.getElementById('cannedChips').style.display = 'flex';
+  document.getElementById('replyForm').style.display = 'flex';
+
+  updateAIModeButton(contact.ai_mode);
+
+  // Update profile sidebar
+  document.getElementById('profileAvatar').textContent = initials;
+  document.getElementById('profileName').textContent = contact.name;
+  document.getElementById('profilePhone').textContent = contact.phone_number;
+  document.getElementById('profileStatus').textContent = contact.status || 'Active';
+  document.getElementById('profileAIMode').textContent = contact.ai_mode === 'auto' ? '🤖 RAG Auto-Pilot' : '👤 Human Takeover';
+
+  if (contact.lead) {
+    const pEl = document.getElementById('profileLeadPriority');
+    pEl.textContent = contact.lead.priority;
+    pEl.className = 'badge-tag ' + (contact.lead.priority === 'Hot' ? 'badge-hot' : (contact.lead.priority === 'Warm' ? 'badge-warm' : 'badge-cold'));
+    document.getElementById('profileLeadScore').textContent = contact.lead.score + ' / 100';
+    document.getElementById('profileLeadService').textContent = contact.lead.service;
+    document.getElementById('profileLeadEmail').textContent = contact.lead.email;
+  } else {
+    document.getElementById('profileLeadPriority').textContent = 'None';
+    document.getElementById('profileLeadPriority').className = 'badge-tag badge-cold';
+    document.getElementById('profileLeadScore').textContent = '--';
+    document.getElementById('profileLeadService').textContent = '--';
+    document.getElementById('profileLeadEmail').textContent = '--';
+  }
+
+  // Fetch messages
+  await loadMessages(id);
+}
+
+function updateAIModeButton(mode) {
+  const btn = document.getElementById('btnToggleAI');
+  if (mode === 'auto') {
+    btn.innerHTML = '<span>🤖</span> AI Mode Active';
+    btn.style.background = '#ecfdf5';
+    btn.style.color = '#065f46';
+    btn.style.borderColor = '#a7f3d0';
+  } else {
+    btn.innerHTML = '<span>👤</span> Human Takeover';
+    btn.style.background = '#fffbeb';
+    btn.style.color = '#b45309';
+    btn.style.borderColor = '#fde68a';
+  }
+}
+
+async function loadMessages(contactId) {
+  try {
+    const res = await fetch(`/api/whatsapp/contacts/${contactId}/messages`);
+    if (!res.ok) throw new Error('Failed to load messages');
+    const msgs = await res.json();
+    renderMessages(msgs);
+  } catch (err) {
+    console.error('Error loading messages:', err);
+  }
+}
+
+function renderMessages(msgs) {
+  const container = document.getElementById('messagesContainer');
+  if (msgs.length === 0) {
+    container.innerHTML = `<div style="text-align:center;color:var(--muted);margin:auto;">No message history yet.</div>`;
+    return;
+  }
+
+  container.innerHTML = msgs.map(m => {
+    if (m.sender === 'user') {
+      return `
+        <div class="msg-bubble user">
+          <div>${escapeHtml(m.text)}</div>
+          <div class="msg-meta">${m.created_at || ''}</div>
+        </div>
+      `;
+    }
+
+    if (m.sender === 'bot') {
+      let sourcesHtml = '';
+      if (m.rag_sources && m.rag_sources.length > 0) {
+        const items = m.rag_sources.map(s => `
+          <div class="rag-chunk-item">
+            <b>${escapeHtml(s.title)}</b> <span style="color:#059669;">(Score: ${s.score || '1.0'})</span>
+          </div>
+        `).join('');
+
+        sourcesHtml = `
+          <div class="rag-sources-box">
+            <div class="rag-sources-title" onclick="toggleSources(this)">
+              <span>📚</span> RAG Grounded: ${m.rag_sources.length} knowledge chunk(s) retrieved ▾
+            </div>
+            <div class="rag-chunks-dropdown" style="display:none;margin-top:4px;">
+              ${items}
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="msg-bubble bot">
+          <div class="msg-badge bot"><span>🤖</span> AI Bot (RAG Grounded)</div>
+          <div>${formatWhatsAppMarkdown(m.text)}</div>
+          ${sourcesHtml}
+          <div class="msg-meta">${m.created_at || ''} · Automated</div>
+        </div>
+      `;
+    }
+
+    // Agent manual reply
+    return `
+      <div class="msg-bubble agent">
+        <div class="msg-badge agent"><span>👤</span> Agent Reply</div>
+        <div>${escapeHtml(m.text)}</div>
+        <div class="msg-meta">${m.created_at || ''} · Manual via Admin Panel</div>
+      </div>
+    `;
+  }).join('');
+
+  container.scrollTop = container.scrollHeight;
+}
+
+function toggleSources(el) {
+  const drop = el.nextElementSibling;
+  drop.style.display = drop.style.display === 'none' ? 'block' : 'none';
+}
+
+function escapeHtml(text) {
+  const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'};
+  return (text || '').replace(/[&<>"']/g, m => map[m]);
+}
+
+function formatWhatsAppMarkdown(text) {
+  if (!text) return '';
+  let safe = escapeHtml(text);
+  // Bold *text*
+  safe = safe.replace(/\*(.*?)\*/g, '<b>$1</b>');
+  // Italic _text_
+  safe = safe.replace(/_(.*?)_/g, '<i>$1</i>');
+  // Newlines
+  safe = safe.replace(/\n/g, '<br>');
+  return safe;
+}
+
+// -------------------------------------------------------------
+// Manual Reply from Interface
+// -------------------------------------------------------------
+async function handleSendReply(e) {
+  e.preventDefault();
+  if (!activeContactId) return;
+
+  const input = document.getElementById('replyInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  try {
+    const res = await fetch(`/api/whatsapp/contacts/${activeContactId}/reply`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+
+    if (!res.ok) throw new Error('Failed to send reply');
+    input.value = '';
+    toast('Reply sent directly to WhatsApp user!');
+    await loadMessages(activeContactId);
+    await loadContacts();
+  } catch (err) {
+    toast('Error sending reply: ' + err.message);
+  }
+}
+
+function applyCanned(text) {
+  const input = document.getElementById('replyInput');
+  input.value = text;
+  input.focus();
+}
+
+async function toggleAIMode() {
+  if (!activeContactId) return;
+  try {
+    const res = await fetch(`/api/whatsapp/contacts/${activeContactId}/toggle-ai`, { method: 'PATCH' });
+    const data = await res.json();
+    const contact = contacts.find(c => c.id === activeContactId);
+    if (contact) contact.ai_mode = data.ai_mode;
+    updateAIModeButton(data.ai_mode);
+    document.getElementById('profileAIMode').textContent = data.ai_mode === 'auto' ? '🤖 RAG Auto-Pilot' : '👤 Human Takeover';
+    renderContacts();
+    toast(data.ai_mode === 'auto' ? 'AI Bot Auto-Reply enabled for this chat' : 'Human Agent takeover enabled (AI paused)');
+  } catch (err) {
+    toast('Failed to toggle AI mode');
+  }
+}
+
+async function handleDeleteContact() {
+  if (!activeContactId) return;
+  if (!confirm('Are you sure you want to delete this conversation?')) return;
+  try {
+    await fetch(`/api/whatsapp/contacts/${activeContactId}`, { method: 'DELETE' });
+    toast('Conversation deleted');
+    activeContactId = null;
+    await loadContacts();
+    document.getElementById('messagesContainer').innerHTML = `<div style="text-align:center;margin:auto;color:var(--muted)">Select a conversation</div>`;
+    document.getElementById('replyForm').style.display = 'none';
+    document.getElementById('chatActions').style.display = 'none';
+  } catch (err) {
+    toast('Error deleting conversation');
+  }
+}
+
+// -------------------------------------------------------------
+// WhatsApp Message Simulator
+// -------------------------------------------------------------
+function openSimModal() {
+  document.getElementById('simModal').classList.add('active');
+  document.getElementById('simText').focus();
+}
+
+function closeSimModal() {
+  document.getElementById('simModal').classList.remove('active');
+}
+
+async function handleSendSimulation(e) {
+  e.preventDefault();
+  const phone = document.getElementById('simPhone').value.trim();
+  const name = document.getElementById('simName').value.trim();
+  const text = document.getElementById('simText').value.trim();
+
+  if (!phone || !text) return;
+
+  try {
+    const res = await fetch('/api/whatsapp/simulate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, name, text })
+    });
+
+    if (!res.ok) throw new Error('Simulation failed');
+    const data = await res.json();
+
+    closeSimModal();
+    document.getElementById('simText').value = '';
+    toast('Simulated incoming message processed by RAG bot!');
+
+    await loadContacts();
+    if (data.result && data.result.contact_id) {
+      selectContact(data.result.contact_id);
+    }
+  } catch (err) {
+    toast('Simulation error: ' + err.message);
+  }
+}
+
+// -------------------------------------------------------------
+// Knowledge Base Management (RAG)
+// -------------------------------------------------------------
+async function loadKnowledgeDocs() {
+  try {
+    const res = await fetch('/api/rag/documents');
+    const docs = await res.json();
+    document.getElementById('docCount').textContent = docs.length;
+
+    const container = document.getElementById('docsListContainer');
+    if (docs.length === 0) {
+      container.innerHTML = `<div style="text-align:center;color:var(--muted);padding:20px;">No documents found. Add your first note!</div>`;
+      return;
+    }
+
+    container.innerHTML = docs.map(d => `
+      <div class="doc-item">
+        <div class="doc-header">
+          <b style="font-size:13.5px;color:var(--ink);">${escapeHtml(d.title)}</b>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <span class="badge-tag badge-warm">${escapeHtml(d.category)}</span>
+            <button class="btn sm" style="color:#ef4444;border-color:#fee2e2;" onclick="handleDeleteDoc(${d.id})">Delete</button>
+          </div>
+        </div>
+        <p style="color:var(--muted);font-size:12px;margin:6px 0;line-height:1.5;">${escapeHtml(d.content)}</p>
+        <div style="font-size:11px;color:#94a3b8;">Tags: ${escapeHtml(d.tags || 'none')}</div>
+      </div>
+    `).join('');
+  } catch (err) {
+    console.error('Failed to load knowledge docs:', err);
+  }
+}
+
+async function handleCreateDoc(e) {
+  e.preventDefault();
+  const title = document.getElementById('docTitle').value.trim();
+  const category = document.getElementById('docCategory').value;
+  const tags = document.getElementById('docTags').value.trim();
+  const content = document.getElementById('docContent').value.trim();
+
+  if (!title || !content) return;
+
+  try {
+    const res = await fetch('/api/rag/documents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, category, tags, content })
+    });
+    if (!res.ok) throw new Error('Failed to create document');
+
+    toast('Document saved to RAG Knowledge Base!');
+    document.getElementById('docTitle').value = '';
+    document.getElementById('docTags').value = '';
+    document.getElementById('docContent').value = '';
+    loadKnowledgeDocs();
+  } catch (err) {
+    toast('Error: ' + err.message);
+  }
+}
+
+async function handleDeleteDoc(id) {
+  if (!confirm('Delete this knowledge document?')) return;
+  try {
+    await fetch(`/api/rag/documents/${id}`, { method: 'DELETE' });
+    toast('Document deleted');
+    loadKnowledgeDocs();
+  } catch (err) {
+    toast('Error deleting document');
+  }
+}
+
+async function handleTestRAG() {
+  const query = document.getElementById('ragTestInput').value.trim();
+  if (!query) return;
+
+  const resEl = document.getElementById('ragTestResult');
+  resEl.style.display = 'block';
+  resEl.innerHTML = 'Testing semantic retrieval...';
+
+  try {
+    const res = await fetch('/api/rag/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query })
+    });
+    const data = await res.json();
+
+    let docsHtml = data.documents.map(d => `
+      <div style="padding:6px;background:white;border-radius:4px;margin-top:4px;border:1px solid #e2e8f0;">
+        <b>${escapeHtml(d.title)}</b> (Score: ${d.score})<br>
+        <small style="color:var(--muted);">${escapeHtml(d.content.substring(0, 100))}...</small>
+      </div>
+    `).join('');
+
+    resEl.innerHTML = `
+      <div style="font-weight:700;color:var(--emerald);margin-bottom:6px;">✓ Retrieved ${data.retrieved_count} relatable knowledge chunks:</div>
+      ${docsHtml}
+      <div style="margin-top:10px;font-weight:700;">Grounded WhatsApp Response Preview:</div>
+      <div style="margin-top:4px;padding:8px;background:white;border-radius:6px;border:1px solid #e2e8f0;white-space:pre-wrap;">${escapeHtml(data.sample_response)}</div>
+    `;
+  } catch (err) {
+    resEl.innerHTML = '<span style="color:#ef4444;">Error testing RAG query.</span>';
+  }
+}
+
+// -------------------------------------------------------------
+// Leads Management
+// -------------------------------------------------------------
+async function loadLeads() {
+  try {
+    const res = await fetch('/leads');
+    const leads = await res.json();
+    const tbody = document.getElementById('leadsTableBody');
+
+    if (leads.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px;">No leads captured yet.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = leads.map(l => {
+      const cls = l.priority === 'Hot' ? 'badge-hot' : (l.priority === 'Warm' ? 'badge-warm' : 'badge-cold');
+      return `
+        <tr>
+          <td><b>${escapeHtml(l.name)}</b></td>
+          <td>${escapeHtml(l.email)}</td>
+          <td>${escapeHtml(l.phone || '--')}</td>
+          <td>${escapeHtml(l.service)}</td>
+          <td><span class="score-pill">${l.lead_score || 0} / 100</span></td>
+          <td><span class="badge-tag ${cls}">${l.priority}</span></td>
+          <td><span style="font-size:11px;color:var(--muted);">${escapeHtml(l.status || 'New')}</span></td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error('Failed to load leads:', err);
+  }
+}
+
+// -------------------------------------------------------------
+// Analytics
+// -------------------------------------------------------------
+async function loadAnalytics() {
+  try {
+    const res = await fetch('/api/whatsapp/analytics');
+    const data = await res.json();
+
+    document.getElementById('statConversations').textContent = data.total_conversations;
+    document.getElementById('statInbound').textContent = data.inbound_messages;
+    document.getElementById('statBotReplies').textContent = data.bot_replies;
+    document.getElementById('statLeads').textContent = data.total_leads;
+
+    document.getElementById('statCoverage').textContent = data.resolution_rate + '%';
+    document.getElementById('statCoverageBar').style.width = data.resolution_rate + '%';
+
+    document.getElementById('leadHotCount').textContent = data.leads_breakdown.hot;
+    document.getElementById('leadWarmCount').textContent = data.leads_breakdown.warm;
+    document.getElementById('leadColdCount').textContent = data.leads_breakdown.cold;
+  } catch (err) {
+    console.error('Failed to load analytics:', err);
+  }
+}
+
+// Initial Boot
+loadContacts();
+loadAnalytics();
+
+// Real-time polling every 4 seconds to catch incoming user traffic
+pollTimer = setInterval(() => {
+  if (document.getElementById('inbox').classList.contains('active')) {
+    loadContacts();
+    if (activeContactId) {
+      loadMessages(activeContactId);
+    }
+  }
+}, 4000);
+</script>
+</body>
+</html>
