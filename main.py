@@ -134,15 +134,14 @@ def _seed_sample_whatsapp_if_empty(db: Session):
 
         db.commit()
 
+def send_whatsapp_cloud_api_message(to_phone: str, text: str) -> Optional[bool]:
 
-def send_whatsapp_cloud_api_message(to_phone: str, text: str) -> bool:
-    """Dispatches WhatsApp Cloud API message if credentials exist, otherwise logs simulation."""
-    token = os.getenv("WHATSAPP_TOKEN")
+    token = os.getenv("WHATSAPP_ACCESS_TOKEN")
     phone_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID")
 
     if not token or not phone_id:
-        print(f"[WhatsApp Local/Simulation] Outbound message to {to_phone}: {text[:80]}...")
-        return True
+        print("[WhatsApp] Credentials missing. Simulation only.")
+        return None
 
     url = f"https://graph.facebook.com/v21.0/{phone_id}/messages"
     headers = {
@@ -532,30 +531,59 @@ def send_admin_reply(
     req: ReplyRequest,
     db: Session = Depends(get_db)
 ):
-    """Admin manual reply directly from the web interface."""
-    contact = db.query(WhatsAppContact).filter(WhatsAppContact.id == contact_id).first()
+    """Send an admin reply and accurately record its delivery attempt."""
+
+    contact = db.query(WhatsAppContact).filter(
+        WhatsAppContact.id == contact_id
+    ).first()
+
     if not contact:
         raise HTTPException(status_code=404, detail="Contact not found")
 
+    message_text = req.text.strip()
+
+    if not message_text:
+        raise HTTPException(status_code=400, detail="Message cannot be empty")
+
+    # Save as pending first
     new_msg = WhatsAppMessage(
         contact_id=contact.id,
         sender="agent",
         sender_name="Admin Agent",
-        text=req.text.strip(),
-        status="sent"
+        text=message_text,
+        status="pending"
     )
+
     db.add(new_msg)
-
-    contact.last_message = req.text.strip()
-    contact.last_message_at = datetime.datetime.utcnow()
-    contact.unread_count = 0
     db.commit()
+    db.refresh(new_msg)
 
-    # Dispatch to WhatsApp user phone if Meta Cloud API is connected
-    send_whatsapp_cloud_api_message(contact.phone_number, req.text.strip())
+    # Attempt real WhatsApp delivery
+    sent = send_whatsapp_cloud_api_message(
+        contact.phone_number,
+        message_text
+    )
+
+    if sent is True:
+        new_msg.status = "sent"
+        result_message = "WhatsApp message sent successfully"
+
+    elif sent is None:
+        new_msg.status = "simulated"
+        result_message = "Simulation only: Meta credentials are missing"
+
+    else:
+        new_msg.status = "failed"
+        result_message = "Meta rejected or failed to send the message"
+
+    contact.last_message = message_text
+    contact.last_message_at = datetime.datetime.utcnow()
+
+    db.commit()
+    db.refresh(new_msg)
 
     return {
-        "success": True,
+        "success": sent is True,
         "message": {
             "id": new_msg.id,
             "sender": new_msg.sender,
@@ -563,8 +591,10 @@ def send_admin_reply(
             "text": new_msg.text,
             "status": new_msg.status,
             "created_at": new_msg.created_at.strftime("%H:%M")
-        }
+        },
+        "detail": result_message
     }
+
 
 
 @app.patch("/api/whatsapp/contacts/{contact_id}/toggle-ai")
