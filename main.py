@@ -2,6 +2,9 @@ import os
 import json
 import datetime
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 from typing import List, Optional
 from fastapi import FastAPI, Depends, HTTPException, Query, Request
 from fastapi.responses import FileResponse, PlainTextResponse, JSONResponse
@@ -134,35 +137,75 @@ def _seed_sample_whatsapp_if_empty(db: Session):
 
         db.commit()
 
-def send_whatsapp_cloud_api_message(to_phone: str, text: str) -> Optional[bool]:
+def send_whatsapp_cloud_api_message(to_phone: str, text: str) -> Optional[dict]:
 
     token = os.getenv("WHATSAPP_ACCESS_TOKEN")
     phone_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID")
-
-    if not token or not phone_id:
-        print("[WhatsApp] Credentials missing. Simulation only.")
-        return None
+if not token or not phone_id:
+    print("[WhatsApp] Credentials missing.")
+    return {
+        "success": False,
+        "message_id": None,
+        "error": "Missing WhatsApp access token or phone number ID"
+    }
 
     url = f"https://graph.facebook.com/v21.0/{phone_id}/messages"
+
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
     }
+
     payload = {
         "messaging_product": "whatsapp",
         "recipient_type": "individual",
         "to": to_phone,
         "type": "text",
-        "text": {"preview_url": False, "body": text}
+        "text": {
+            "preview_url": False,
+            "body": text
+        }
     }
+
     try:
-        res = requests.post(url, json=payload, headers=headers, timeout=10)
+        res = requests.post(
+            url,
+            json=payload,
+            headers=headers,
+            timeout=10
+        )
+
+        response_data = res.json()
         res.raise_for_status()
-        print(f"[WhatsApp Cloud API] Message dispatched successfully to {to_phone}")
-        return True
-    except Exception as e:
-        print(f"[WhatsApp Cloud API] Delivery failed: {e}")
-        return False
+
+        messages = response_data.get("messages", [])
+        whatsapp_message_id = messages[0].get("id") if messages else None
+
+        print(
+            f"[WhatsApp Cloud API] Accepted by Meta for {to_phone}. "
+            f"Message ID: {whatsapp_message_id}"
+        )
+
+        return {
+            "success": True,
+            "message_id": whatsapp_message_id,
+            "response": response_data
+        }
+
+    except requests.exceptions.RequestException as e:
+        error_details = ""
+
+        if e.response is not None:
+            error_details = e.response.text
+
+        print(f"[WhatsApp Cloud API] API request failed: {e}")
+        print(f"[WhatsApp Cloud API] Error details: {error_details}")
+
+        return {
+            "success": False,
+            "message_id": None,
+            "error": error_details or str(e)
+        }
 
 
 # -------------------------------------------------------------
@@ -327,30 +370,69 @@ def verify_whatsapp_webhook(
 
 
 @app.post("/webhook")
-async def receive_whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
+async def receive_whatsapp_webhook(
+    request: Request,
+    db: Session = Depends(get_db)
+):
     data = await request.json()
+
     print("WhatsApp Webhook Received:", json.dumps(data, indent=2))
 
     try:
         for entry in data.get("entry", []):
             for change in entry.get("changes", []):
                 value = change.get("value", {})
+
+                # 1. Process outgoing message status updates
+                for status_item in value.get("statuses", []):
+                    whatsapp_message_id = status_item.get("id")
+                    meta_status = status_item.get("status")
+
+                    if not whatsapp_message_id or not meta_status:
+                        continue
+
+                    message = db.query(WhatsAppMessage).filter(
+                        WhatsAppMessage.whatsapp_message_id
+                        == whatsapp_message_id
+                    ).first()
+
+                    if message:
+                        if meta_status in ["sent", "delivered", "read", "failed"]:
+                            message.status = meta_status
+
+                        if meta_status == "failed":
+                            errors = status_item.get("errors", [])
+                            message.error_details = json.dumps(errors)
+
+                        print(
+                            f"[WhatsApp Status] "
+                            f"{whatsapp_message_id}: {meta_status}"
+                        )
+
+                # 2. Process incoming customer messages
                 messages = value.get("messages", [])
                 contacts = value.get("contacts", [])
 
-                for message in messages:
-                    phone = message.get("from")
-                    if message.get("type") != "text":
+                for incoming_message in messages:
+                    phone = incoming_message.get("from")
+
+                    if incoming_message.get("type") != "text":
                         continue
 
-                    message_text = message.get("text", {}).get("body", "").strip()
+                    message_text = incoming_message.get(
+                        "text", {}
+                    ).get("body", "").strip()
+
                     if not phone or not message_text:
                         continue
 
                     customer_name = "WhatsApp User"
+
                     for item in contacts:
                         if item.get("wa_id") == phone:
-                            customer_name = item.get("profile", {}).get("name", customer_name)
+                            customer_name = item.get(
+                                "profile", {}
+                            ).get("name", customer_name)
                             break
 
                     _process_incoming_whatsapp_message(
@@ -361,13 +443,17 @@ async def receive_whatsapp_webhook(request: Request, db: Session = Depends(get_d
                     )
 
         db.commit()
+
     except Exception as error:
         db.rollback()
         print("WhatsApp webhook database error:", error)
-        raise HTTPException(status_code=500, detail="Message processing failed")
+
+        raise HTTPException(
+            status_code=500,
+            detail="Message processing failed"
+        )
 
     return {"status": "received"}
-
 
 def _process_incoming_whatsapp_message(
     phone: str,
@@ -441,8 +527,25 @@ def _process_incoming_whatsapp_message(
         contact.last_message_at = datetime.datetime.utcnow()
         db.commit()
 
-        # Send outbound via Cloud API if enabled
-        send_whatsapp_cloud_api_message(phone, reply_text)
+    # Send outbound via WhatsApp Cloud API
+    result = send_whatsapp_cloud_api_message(phone, reply_text)
+
+    if result is not None and result.get("success"):
+        if bot_msg:
+            bot_msg.status = "sent"
+            bot_msg.whatsapp_message_id = result.get("message_id")
+            bot_msg.error_details = None
+
+    elif result is None:
+        if bot_msg:
+            bot_msg.status = "simulated"
+
+    else:
+        if bot_msg:
+            bot_msg.status = "failed"
+            bot_msg.error_details = result.get("error")
+
+    db.commit()
 
     return {
         "contact_id": contact.id,
@@ -531,7 +634,7 @@ def send_admin_reply(
     req: ReplyRequest,
     db: Session = Depends(get_db)
 ):
-    """Send an admin reply and accurately record its delivery attempt."""
+    """Send an admin reply and record the Meta message ID."""
 
     contact = db.query(WhatsAppContact).filter(
         WhatsAppContact.id == contact_id
@@ -545,7 +648,6 @@ def send_admin_reply(
     if not message_text:
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
-    # Save as pending first
     new_msg = WhatsAppMessage(
         contact_id=contact.id,
         sender="agent",
@@ -558,23 +660,25 @@ def send_admin_reply(
     db.commit()
     db.refresh(new_msg)
 
-    # Attempt real WhatsApp delivery
-    sent = send_whatsapp_cloud_api_message(
+    result = send_whatsapp_cloud_api_message(
         contact.phone_number,
         message_text
     )
 
-    if sent is True:
+    if result is not None and result.get("success"):
         new_msg.status = "sent"
-        result_message = "WhatsApp message sent successfully"
+        new_msg.whatsapp_message_id = result.get("message_id")
+        new_msg.error_details = None
+        result_message = "Message accepted by Meta API"
 
-    elif sent is None:
+    elif result is None:
         new_msg.status = "simulated"
         result_message = "Simulation only: Meta credentials are missing"
 
     else:
         new_msg.status = "failed"
-        result_message = "Meta rejected or failed to send the message"
+        new_msg.error_details = result.get("error")
+        result_message = "Meta rejected or failed the message"
 
     contact.last_message = message_text
     contact.last_message_at = datetime.datetime.utcnow()
@@ -583,9 +687,10 @@ def send_admin_reply(
     db.refresh(new_msg)
 
     return {
-        "success": sent is True,
+        "success": result is not None and result.get("success", False),
         "message": {
             "id": new_msg.id,
+            "whatsapp_message_id": new_msg.whatsapp_message_id,
             "sender": new_msg.sender,
             "sender_name": new_msg.sender_name,
             "text": new_msg.text,
@@ -594,8 +699,6 @@ def send_admin_reply(
         },
         "detail": result_message
     }
-
-
 
 @app.patch("/api/whatsapp/contacts/{contact_id}/toggle-ai")
 def toggle_ai_mode(contact_id: int, db: Session = Depends(get_db)):
