@@ -137,17 +137,18 @@ def _seed_sample_whatsapp_if_empty(db: Session):
 
         db.commit()
 
-def send_whatsapp_cloud_api_message(to_phone: str, text: str) -> Optional[dict]:
 
+def send_whatsapp_cloud_api_message(to_phone: str, text: str) -> Optional[dict]:
     token = os.getenv("WHATSAPP_ACCESS_TOKEN")
     phone_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID")
-if not token or not phone_id:
-    print("[WhatsApp] Credentials missing.")
-    return {
-        "success": False,
-        "message_id": None,
-        "error": "Missing WhatsApp access token or phone number ID"
-    }
+
+    if not token or not phone_id:
+        print("[WhatsApp] Credentials missing.")
+        return {
+            "success": False,
+            "message_id": None,
+            "error": "WhatsApp credentials missing"
+        }
 
     url = f"https://graph.facebook.com/v21.0/{phone_id}/messages"
 
@@ -181,10 +182,7 @@ if not token or not phone_id:
         messages = response_data.get("messages", [])
         whatsapp_message_id = messages[0].get("id") if messages else None
 
-        print(
-            f"[WhatsApp Cloud API] Accepted by Meta for {to_phone}. "
-            f"Message ID: {whatsapp_message_id}"
-        )
+        print(f"[WhatsApp] Accepted by Meta. Message ID: {whatsapp_message_id}")
 
         return {
             "success": True,
@@ -193,19 +191,17 @@ if not token or not phone_id:
         }
 
     except requests.exceptions.RequestException as e:
-        error_details = ""
+        error_details = e.response.text if e.response is not None else str(e)
 
-        if e.response is not None:
-            error_details = e.response.text
-
-        print(f"[WhatsApp Cloud API] API request failed: {e}")
-        print(f"[WhatsApp Cloud API] Error details: {error_details}")
+        print(f"[WhatsApp] API request failed: {e}")
+        print(f"[WhatsApp] Error details: {error_details}")
 
         return {
             "success": False,
             "message_id": None,
-            "error": error_details or str(e)
+            "error": error_details
         }
+
 
 
 # -------------------------------------------------------------
