@@ -750,6 +750,62 @@
       font-weight: 500;
       z-index: 1000;
       box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+
+      /* FIX: Full dashboard scrolling */
+      html {
+        min-height: 100%;
+        overflow-y: auto;
+        scroll-behavior: smooth;
+      }
+
+      body {
+        min-height: 100vh;
+        height: auto;
+        overflow-x: hidden;
+        overflow-y: auto;
+      }
+
+      .app {
+        min-height: 100vh;
+        height: auto;
+        align-items: stretch;
+      }
+
+      .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        align-self: start;
+        overflow-y: auto;
+      }
+
+      main {
+        min-width: 0;
+        min-height: 100vh;
+        height: auto;
+      }
+
+      .content {
+        padding-bottom: 50px;
+      }
+
+      /* Keep inbox panels independently scrollable */
+      .inbox-card {
+        min-height: 600px;
+      }
+
+      .chat-area,
+      .contact-list {
+        min-height: 0;
+      }
+
+      .contacts-scroll,
+      .chat-messages,
+      .chat-profile {
+        min-height: 0;
+        overflow-y: auto;
+      }
+
     }
   </style>
 </head>
