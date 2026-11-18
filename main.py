@@ -388,7 +388,8 @@ async def receive_whatsapp_webhook(
                         continue
 
                     message = db.query(WhatsAppMessage).filter(
-                        WhatsAppMessage.whatsapp_message_id == whatsapp_message_id
+                        WhatsAppMessage.whatsapp_message_id
+                        == whatsapp_message_id
                     ).first()
 
                     if message:
@@ -409,27 +410,10 @@ async def receive_whatsapp_webhook(
                 contacts = value.get("contacts", [])
 
                 for incoming_message in messages:
-                    incoming_message_id = incoming_message.get("id")
-
-                    if not incoming_message_id:
-                        continue
+                    phone = incoming_message.get("from")
 
                     if incoming_message.get("type") != "text":
                         continue
-
-                    # Prevent duplicate incoming messages
-                    existing_message = db.query(WhatsAppMessage).filter(
-                        WhatsAppMessage.whatsapp_message_id == incoming_message_id
-                    ).first()
-
-                    if existing_message:
-                        print(
-                            f"[WhatsApp] Duplicate message ignored: "
-                            f"{incoming_message_id}"
-                        )
-                        continue
-
-                    phone = incoming_message.get("from")
 
                     message_text = incoming_message.get(
                         "text", {}
@@ -451,7 +435,6 @@ async def receive_whatsapp_webhook(
                         phone=phone,
                         customer_name=customer_name,
                         message_text=message_text,
-                        incoming_message_id=incoming_message_id,
                         db=db
                     )
 
@@ -459,7 +442,6 @@ async def receive_whatsapp_webhook(
 
     except Exception as error:
         db.rollback()
-
         print("WhatsApp webhook database error:", error)
 
         raise HTTPException(
@@ -469,157 +451,129 @@ async def receive_whatsapp_webhook(
 
     return {"status": "received"}
 
-
 def _process_incoming_whatsapp_message(
     phone: str,
     customer_name: str,
     message_text: str,
-    db: Session,
-    incoming_message_id: Optional[str] = None
+    db: Session
 ) -> dict:
     """
-    Process incoming WhatsApp messages and generate RAG-based replies.
+    Process an incoming WhatsApp message:
+    1. Find or create contact.
+    2. Save incoming message.
+    3. Extract lead information.
+    4. Generate AI reply if AI mode is enabled.
+    5. Send reply through WhatsApp Cloud API.
     """
 
-    try:
-        # 1. Find or create contact
-        contact = (
-            db.query(WhatsAppContact)
-            .filter(WhatsAppContact.phone_number == phone)
-            .first()
+    contact = (
+        db.query(WhatsAppContact)
+        .filter(WhatsAppContact.phone_number == phone)
+        .first()
+    )
+
+    if contact is None:
+        contact = WhatsAppContact(
+            phone_number=phone,
+            name=customer_name or "WhatsApp User",
+            status="active",
+            ai_mode="auto",
+            unread_count=0
+        )
+        db.add(contact)
+        db.flush()
+
+    elif customer_name and customer_name != "WhatsApp User":
+        contact.name = customer_name
+
+    # Save incoming customer message
+    user_msg = WhatsAppMessage(
+        contact_id=contact.id,
+        sender="user",
+        sender_name=contact.name,
+        text=message_text,
+        status="received"
+    )
+
+    db.add(user_msg)
+
+    contact.last_message = message_text
+    contact.last_message_at = datetime.datetime.utcnow()
+    contact.unread_count = (contact.unread_count or 0) + 1
+
+    db.commit()
+    db.refresh(user_msg)
+
+    # Extract lead information
+    lead_info = RAGEngine.check_and_extract_lead(
+        user_message=message_text,
+        phone_number=phone,
+        contact_name=contact.name,
+        db=db,
+        contact=contact
+    )
+
+    bot_msg = None
+    sources = []
+
+    # Generate and send reply only when AI mode is enabled
+    if contact.ai_mode == "auto":
+
+        docs = RAGEngine.retrieve_relevant_documents(
+            message_text,
+            db
         )
 
-        if contact is None:
-            contact = WhatsAppContact(
-                phone_number=phone,
-                name=customer_name or "WhatsApp User",
-                status="active",
-                ai_mode="auto",
-                unread_count=0
-            )
-            db.add(contact)
-            db.flush()
+        reply_text, sources = RAGEngine.generate_grounded_response(
+            message_text,
+            docs,
+            contact.name
+        )
 
-        elif customer_name and customer_name != "WhatsApp User":
-            contact.name = customer_name
-
-        # 2. Prevent duplicate incoming messages
-        if incoming_message_id:
-            existing_message = (
-                db.query(WhatsAppMessage)
-                .filter(
-                    WhatsAppMessage.whatsapp_message_id
-                    == incoming_message_id
-                )
-                .first()
-            )
-
-            if existing_message:
-                return {
-                    "success": True,
-                    "duplicate": True,
-                    "contact_id": contact.id,
-                    "message": "Duplicate message ignored"
-                }
-
-        # 3. Save incoming customer message
-        user_msg = WhatsAppMessage(
+        # Save bot reply before sending
+        bot_msg = WhatsAppMessage(
             contact_id=contact.id,
-            sender="user",
-            sender_name=contact.name,
-            text=message_text,
-            status="received",
-            whatsapp_message_id=incoming_message_id
+            sender="bot",
+            sender_name="LeadFlow RAG Bot",
+            text=reply_text,
+            rag_sources=json.dumps(sources),
+            status="pending"
         )
 
-        db.add(user_msg)
-
-        contact.last_message = message_text
+        db.add(bot_msg)
+        contact.last_message = reply_text
         contact.last_message_at = datetime.datetime.utcnow()
-        contact.unread_count = (contact.unread_count or 0) + 1
 
         db.commit()
-        db.refresh(user_msg)
+        db.refresh(bot_msg)
 
-        # 4. Extract lead information
-        lead_info = RAGEngine.check_and_extract_lead(
-            user_message=message_text,
-            phone_number=phone,
-            contact_name=contact.name,
-            db=db,
-            contact=contact
+        # Send exactly once through Meta Cloud API
+        result = send_whatsapp_cloud_api_message(
+            phone,
+            reply_text
         )
 
-        bot_msg = None
-        sources = []
+        if result is not None and result.get("success"):
+            bot_msg.status = "sent"
+            bot_msg.whatsapp_message_id = result.get("message_id")
+            bot_msg.error_details = None
 
-        # 5. Generate RAG reply when AI mode is enabled
-        if contact.ai_mode == "auto":
+        elif result is None:
+            bot_msg.status = "simulated"
 
-            docs = RAGEngine.retrieve_relevant_documents(
-                message_text,
-                db
-            )
+        else:
+            bot_msg.status = "failed"
+            bot_msg.error_details = result.get("error", "WhatsApp API failed")
 
-            reply_text, sources = RAGEngine.generate_grounded_response(
-                message_text,
-                docs,
-                contact.name
-            )
+        db.commit()
 
-            # 6. Save bot reply
-            bot_msg = WhatsAppMessage(
-                contact_id=contact.id,
-                sender="bot",
-                sender_name="LeadFlow RAG Bot",
-                text=reply_text,
-                rag_sources=json.dumps(sources),
-                status="pending"
-            )
-
-            db.add(bot_msg)
-
-            contact.last_message = reply_text
-            contact.last_message_at = datetime.datetime.utcnow()
-
-            db.commit()
-            db.refresh(bot_msg)
-
-            # 7. Send reply through WhatsApp Cloud API
-            result = send_whatsapp_cloud_api_message(
-                phone,
-                reply_text
-            )
-
-            if result and result.get("success"):
-                bot_msg.status = "sent"
-                bot_msg.whatsapp_message_id = result.get("message_id")
-                bot_msg.error_details = None
-
-            elif result is None:
-                bot_msg.status = "simulated"
-
-            else:
-                bot_msg.status = "failed"
-                bot_msg.error_details = result.get(
-                    "error",
-                    "WhatsApp API failed"
-                )
-
-            db.commit()
-
-        return {
-            "success": True,
-            "contact_id": contact.id,
-            "user_message_id": user_msg.id,
-            "bot_reply": bot_msg.text if bot_msg else None,
-            "sources": sources,
-            "lead_info": lead_info
-        }
-
-    except Exception:
-        db.rollback()
-        raise
+    return {
+        "contact_id": contact.id,
+        "user_message_id": user_msg.id,
+        "bot_reply": bot_msg.text if bot_msg else None,
+        "sources": sources,
+        "lead_info": lead_info
+    }
 
 
 # -------------------------------------------------------------
