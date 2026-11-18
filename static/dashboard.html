@@ -317,8 +317,8 @@
     .inbox-card {
       display: grid;
       grid-template-columns: 310px 1fr 280px;
-      height: calc(100vh - 190px);
-      min-height: 600px;
+      height: calc(100vh - 230px);
+      min-height: 560px;
       overflow: hidden;
       background: white;
       border: 1px solid var(--line);
@@ -714,29 +714,6 @@
       background: #f1f5f9;
     }
 
-    /* MODAL */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(15, 23, 42, 0.6);
-      display: none;
-      place-items: center;
-      z-index: 999;
-    }
-
-    .modal-overlay.active {
-      display: grid;
-    }
-
-    .modal {
-      background: white;
-      border-radius: 12px;
-      width: 90%;
-      max-width: 480px;
-      padding: 24px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-    }
-
     .toast {
       position: fixed;
       bottom: 24px;
@@ -750,62 +727,96 @@
       font-weight: 500;
       z-index: 1000;
       box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+    }
 
-      /* FIX: Full dashboard scrolling */
-      html {
-        min-height: 100%;
-        overflow-y: auto;
-        scroll-behavior: smooth;
+    /* ===== FULL DASHBOARD SCROLLING FIX ===== */
+    html {
+      min-height: 100%;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100vh;
+      height: auto;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+
+    .app {
+      min-height: 100vh;
+      height: auto;
+      align-items: start;
+    }
+
+    /* Sidebar page ke saath scroll na ho, hamesha dikhe */
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      align-self: start;
+      overflow-y: auto;
+    }
+
+    main {
+      min-width: 0;
+      min-height: 100vh;
+      height: auto;
+    }
+
+    /* Top bar scroll par upar chipki rahe */
+    .top {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .content {
+      padding-bottom: 50px;
+    }
+
+    /* Inbox ke 3 panels apne andar alag scroll karein */
+    .chat-area,
+    .contact-list,
+    .chat-profile {
+      min-height: 0;
+    }
+
+    .contacts-scroll,
+    .chat-messages,
+    .chat-profile {
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    /* Mobile / chhoti screen */
+    @media (max-width: 1100px) {
+      .inbox-card {
+        grid-template-columns: 280px 1fr;
       }
 
-      body {
-        min-height: 100vh;
-        height: auto;
-        overflow-x: hidden;
-        overflow-y: auto;
+      .chat-profile {
+        display: none;
       }
+    }
 
+    @media (max-width: 800px) {
       .app {
-        min-height: 100vh;
-        height: auto;
-        align-items: stretch;
+        grid-template-columns: 1fr;
       }
 
       .sidebar {
-        position: sticky;
-        top: 0;
-        height: 100vh;
-        align-self: start;
-        overflow-y: auto;
-      }
-
-      main {
-        min-width: 0;
-        min-height: 100vh;
+        position: static;
         height: auto;
       }
 
-      .content {
-        padding-bottom: 50px;
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
       }
 
-      /* Keep inbox panels independently scrollable */
-      .inbox-card {
-        min-height: 600px;
+      .kb-grid {
+        grid-template-columns: 1fr;
       }
-
-      .chat-area,
-      .contact-list {
-        min-height: 0;
-      }
-
-      .contacts-scroll,
-      .chat-messages,
-      .chat-profile {
-        min-height: 0;
-        overflow-y: auto;
-      }
-
     }
   </style>
 </head>
@@ -866,9 +877,6 @@
         <div class="crumb">Console / <b id="crumbTitle">WhatsApp Inbox</b></div>
         <div style="display:flex;gap:10px;align-items:center;">
           <span class="pill-live">Backend Online · Port 8000</span>
-          <button class="btn primary sm" onclick="openSimModal()">
-            <span>📱</span> Simulate WhatsApp
-          </button>
         </div>
       </header>
 
@@ -988,13 +996,6 @@
               <div class="profile-row">
                 <span>Lead Email</span>
                 <b id="profileLeadEmail" style="font-size:11px;">--</b>
-              </div>
-
-              <div style="margin-top:24px;">
-                <button class="btn sm" style="width:100%;color:#dc2626;border-color:#fecaca;"
-                  onclick="handleDeleteContact()">
-                  🗑️ Delete Conversation
-                </button>
               </div>
             </aside>
           </div>
@@ -1251,7 +1252,7 @@
             <div>
               <div class="eyebrow">CONFIGURATION</div>
               <h1>Meta WhatsApp Cloud API Settings</h1>
-              <p>Connect your official WhatsApp Business phone number or run in developer simulation mode.</p>
+              <p>Connect your official WhatsApp Business phone number to send and receive live messages.</p>
             </div>
           </div>
 
@@ -1259,8 +1260,7 @@
             <div class="card" style="padding:20px;">
               <h3 style="margin:0 0 14px;font-size:15px;">Meta Cloud API Credentials</h3>
               <p style="color:var(--muted);font-size:12.5px;margin-bottom:14px;">
-                Provide your Meta credentials to send real outbound messages to user phones. Leave blank to run in
-                simulation mode.
+                Provide your Meta credentials to send real outbound messages to customer phones.
               </p>
               <div class="form-group">
                 <label>WhatsApp Phone Number ID</label>
@@ -1294,42 +1294,6 @@
 
       </div>
     </main>
-  </div>
-
-  <!-- ============================================== -->
-  <!-- SIMULATE WHATSAPP MODAL -->
-  <!-- ============================================== -->
-  <div class="modal-overlay" id="simModal">
-    <div class="modal">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <h3 style="margin:0;font-size:16px;">📱 Simulate Incoming WhatsApp Message</h3>
-        <button class="btn sm" onclick="closeSimModal()">✕</button>
-      </div>
-      <p style="color:var(--muted);font-size:12.5px;margin-bottom:16px;">
-        Send a simulated message from any user phone number to test the RAG engine, knowledge retrieval, and live
-        replies instantly.
-      </p>
-      <form onsubmit="handleSendSimulation(event)">
-        <div class="form-group">
-          <label>User Phone Number</label>
-          <input type="text" id="simPhone" value="+919876543210" required>
-        </div>
-        <div class="form-group">
-          <label>Customer Name</label>
-          <input type="text" id="simName" value="Rahul Sharma" required>
-        </div>
-        <div class="form-group">
-          <label>WhatsApp Message</label>
-          <textarea id="simText" rows="3"
-            placeholder="e.g. What are your pricing plans? Or: I need AI automation, my email is john@xyz.com"
-            required></textarea>
-        </div>
-        <div style="display:flex;gap:8px;justify-content:flex-end;">
-          <button type="button" class="btn" onclick="closeSimModal()">Cancel</button>
-          <button type="submit" class="btn primary">Send to RAG Bot</button>
-        </div>
-      </form>
-    </div>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -1647,65 +1611,6 @@
         toast(data.ai_mode === 'auto' ? 'AI Bot Auto-Reply enabled for this chat' : 'Human Agent takeover enabled (AI paused)');
       } catch (err) {
         toast('Failed to toggle AI mode');
-      }
-    }
-
-    async function handleDeleteContact() {
-      if (!activeContactId) return;
-      if (!confirm('Are you sure you want to delete this conversation?')) return;
-      try {
-        await fetch(`/api/whatsapp/contacts/${activeContactId}`, { method: 'DELETE' });
-        toast('Conversation deleted');
-        activeContactId = null;
-        await loadContacts();
-        document.getElementById('messagesContainer').innerHTML = `<div style="text-align:center;margin:auto;color:var(--muted)">Select a conversation</div>`;
-        document.getElementById('replyForm').style.display = 'none';
-        document.getElementById('chatActions').style.display = 'none';
-      } catch (err) {
-        toast('Error deleting conversation');
-      }
-    }
-
-    // -------------------------------------------------------------
-    // WhatsApp Message Simulator
-    // -------------------------------------------------------------
-    function openSimModal() {
-      document.getElementById('simModal').classList.add('active');
-      document.getElementById('simText').focus();
-    }
-
-    function closeSimModal() {
-      document.getElementById('simModal').classList.remove('active');
-    }
-
-    async function handleSendSimulation(e) {
-      e.preventDefault();
-      const phone = document.getElementById('simPhone').value.trim();
-      const name = document.getElementById('simName').value.trim();
-      const text = document.getElementById('simText').value.trim();
-
-      if (!phone || !text) return;
-
-      try {
-        const res = await fetch('/api/whatsapp/simulate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone, name, text })
-        });
-
-        if (!res.ok) throw new Error('Simulation failed');
-        const data = await res.json();
-
-        closeSimModal();
-        document.getElementById('simText').value = '';
-        toast('Simulated incoming message processed by RAG bot!');
-
-        await loadContacts();
-        if (data.result && data.result.contact_id) {
-          selectContact(data.result.contact_id);
-        }
-      } catch (err) {
-        toast('Simulation error: ' + err.message);
       }
     }
 
