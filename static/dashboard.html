@@ -317,8 +317,8 @@
     .inbox-card {
       display: grid;
       grid-template-columns: 310px 1fr 280px;
-      height: calc(100vh - 230px);
-      min-height: 560px;
+      height: calc(100vh - 190px);
+      min-height: 600px;
       overflow: hidden;
       background: white;
       border: 1px solid var(--line);
@@ -750,96 +750,6 @@
       font-weight: 500;
       z-index: 1000;
       box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
-    }
-
-    /* ===== FULL DASHBOARD SCROLLING FIX ===== */
-    html {
-      min-height: 100%;
-      overflow-y: auto;
-      scroll-behavior: smooth;
-    }
-
-    body {
-      min-height: 100vh;
-      height: auto;
-      overflow-x: hidden;
-      overflow-y: auto;
-    }
-
-    .app {
-      min-height: 100vh;
-      height: auto;
-      align-items: start;
-    }
-
-    /* Sidebar page ke saath scroll na ho, hamesha dikhe */
-    .sidebar {
-      position: sticky;
-      top: 0;
-      height: 100vh;
-      align-self: start;
-      overflow-y: auto;
-    }
-
-    main {
-      min-width: 0;
-      min-height: 100vh;
-      height: auto;
-    }
-
-    /* Top bar scroll par upar chipki rahe */
-    .top {
-      position: sticky;
-      top: 0;
-      z-index: 50;
-    }
-
-    .content {
-      padding-bottom: 50px;
-    }
-
-    /* Inbox ke 3 panels apne andar alag scroll karein */
-    .chat-area,
-    .contact-list,
-    .chat-profile {
-      min-height: 0;
-    }
-
-    .contacts-scroll,
-    .chat-messages,
-    .chat-profile {
-      min-height: 0;
-      overflow-y: auto;
-    }
-
-    /* Mobile / chhoti screen */
-    @media (max-width: 1100px) {
-      .inbox-card {
-        grid-template-columns: 280px 1fr;
-      }
-
-      .chat-profile {
-        display: none;
-      }
-    }
-
-    @media (max-width: 800px) {
-      .app {
-        grid-template-columns: 1fr;
-      }
-
-      .sidebar {
-        position: static;
-        height: auto;
-      }
-
-      .stats {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      .kb-grid {
-        grid-template-columns: 1fr;
-      }
     }
   </style>
 </head>
@@ -1637,56 +1547,30 @@
     // -------------------------------------------------------------
     // Manual Reply from Interface
     // -------------------------------------------------------------
-
     async function handleSendReply(e) {
       e.preventDefault();
-
-      if (!activeContactId) {
-        toast('Please select a conversation first.');
-        return;
-      }
+      if (!activeContactId) return;
 
       const input = document.getElementById('replyInput');
       const text = input.value.trim();
-
       if (!text) return;
 
       try {
-        const res = await fetch(
-          `/api/whatsapp/contacts/${activeContactId}/reply`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ text })
-          }
-        );
+        const res = await fetch(`/api/whatsapp/contacts/${activeContactId}/reply`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
 
-        const data = await res.json();
-
-        if (!res.ok || !data.success) {
-          throw new Error(
-            data.detail ||
-            data.message?.error ||
-            data.detail ||
-            'Meta API rejected the message. Check Render logs.'
-          );
-        }
-
+        if (!res.ok) throw new Error('Failed to send reply');
         input.value = '';
-
-        toast('Message accepted by WhatsApp!');
-
+        toast('Reply sent directly to WhatsApp user!');
         await loadMessages(activeContactId);
         await loadContacts();
-
       } catch (err) {
-        console.error('WhatsApp send error:', err);
-        toast('Message failed: ' + err.message);
+        toast('Error sending reply: ' + err.message);
       }
     }
-
 
     function applyCanned(text) {
       const input = document.getElementById('replyInput');
