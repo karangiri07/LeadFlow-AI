@@ -585,29 +585,30 @@ def _process_incoming_whatsapp_message(
             db.commit()
             db.refresh(bot_msg)
 
-            # 7. Send reply through WhatsApp Cloud API
+           # 7. Send reply through WhatsApp Cloud API
+            print(f"[WhatsApp DEBUG] Sending reply to: {phone}")
+            print(f"[WhatsApp DEBUG] AI reply: {reply_text[:100]}")
+            
             result = send_whatsapp_cloud_api_message(
                 phone,
                 reply_text
             )
-
+            
+            print(f"[WhatsApp DEBUG] Meta API result: {result}")
+            
             if result and result.get("success"):
                 bot_msg.status = "sent"
                 bot_msg.whatsapp_message_id = result.get("message_id")
                 bot_msg.error_details = None
-
-            elif result is None:
-                bot_msg.status = "simulated"
-
+            
             else:
                 bot_msg.status = "failed"
-                bot_msg.error_details = result.get(
-                    "error",
-                    "WhatsApp API failed"
+                bot_msg.error_details = (
+                    result.get("error", "WhatsApp API failed")
+                    if result else "No response from WhatsApp API"
                 )
-
+            
             db.commit()
-
         return {
             "success": True,
             "contact_id": contact.id,
