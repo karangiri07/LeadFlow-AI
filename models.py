@@ -38,16 +38,39 @@ class WhatsAppMessage(Base):
     __tablename__ = "whatsapp_messages"
 
     id = Column(Integer, primary_key=True, index=True)
-    contact_id = Column(Integer, ForeignKey("whatsapp_contacts.id"), index=True, nullable=False)
-    sender = Column(String(20), nullable=False)  # user, bot, agent
+
+    contact_id = Column(
+        Integer,
+        ForeignKey("whatsapp_contacts.id"),
+        index=True,
+        nullable=False
+    )
+
+    sender = Column(String(20), nullable=False)
     sender_name = Column(String(100), nullable=True)
     text = Column(Text, nullable=False)
-    status = Column(String(50), default="received")  # received, sent, delivered, read
-    rag_sources = Column(Text, nullable=True)  # JSON formatted retrieved chunks
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
-    contact = relationship("WhatsAppContact", back_populates="messages")
+    status = Column(String(50), default="received")
 
+    whatsapp_message_id = Column(
+        String(255),
+        unique=True,
+        nullable=True,
+        index=True
+    )
+
+    error_details = Column(Text, nullable=True)
+    rag_sources = Column(Text, nullable=True)
+
+    created_at = Column(
+        DateTime,
+        default=datetime.datetime.utcnow
+    )
+
+    contact = relationship(
+        "WhatsAppContact",
+        back_populates="messages"
+    )
 
 class KnowledgeDocument(Base):
     __tablename__ = "knowledge_documents"
