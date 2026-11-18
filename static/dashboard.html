@@ -1637,30 +1637,56 @@
     // -------------------------------------------------------------
     // Manual Reply from Interface
     // -------------------------------------------------------------
+
     async function handleSendReply(e) {
       e.preventDefault();
-      if (!activeContactId) return;
+
+      if (!activeContactId) {
+        toast('Please select a conversation first.');
+        return;
+      }
 
       const input = document.getElementById('replyInput');
       const text = input.value.trim();
+
       if (!text) return;
 
       try {
-        const res = await fetch(`/api/whatsapp/contacts/${activeContactId}/reply`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text })
-        });
+        const res = await fetch(
+          `/api/whatsapp/contacts/${activeContactId}/reply`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ text })
+          }
+        );
 
-        if (!res.ok) throw new Error('Failed to send reply');
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          throw new Error(
+            data.detail ||
+            data.message?.error ||
+            data.detail ||
+            'Meta API rejected the message. Check Render logs.'
+          );
+        }
+
         input.value = '';
-        toast('Reply sent directly to WhatsApp user!');
+
+        toast('Message accepted by WhatsApp!');
+
         await loadMessages(activeContactId);
         await loadContacts();
+
       } catch (err) {
-        toast('Error sending reply: ' + err.message);
+        console.error('WhatsApp send error:', err);
+        toast('Message failed: ' + err.message);
       }
     }
+
 
     function applyCanned(text) {
       const input = document.getElementById('replyInput');
