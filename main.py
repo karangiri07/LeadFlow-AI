@@ -478,128 +478,148 @@ def _process_incoming_whatsapp_message(
     incoming_message_id: Optional[str] = None
 ) -> dict:
     """
-    Process an incoming WhatsApp message:
-    1. Find or create contact.
-    2. Save incoming message.
-    3. Extract lead information.
-    4. Generate AI reply if AI mode is enabled.
-    5. Send reply through WhatsApp Cloud API.
+    Process incoming WhatsApp messages and generate RAG-based replies.
     """
 
-    contact = (
-        db.query(WhatsAppContact)
-        .filter(WhatsAppContact.phone_number == phone)
-        .first()
-    )
-
-    if contact is None:
-        contact = WhatsAppContact(
-            phone_number=phone,
-            name=customer_name or "WhatsApp User",
-            status="active",
-            ai_mode="auto",
-            unread_count=0
-        )
-        db.add(contact)
-        db.flush()
-
-    elif customer_name and customer_name != "WhatsApp User":
-        contact.name = customer_name
-
-    # Save incoming customer message
-    user_msg = WhatsAppMessage(
-        contact_id=contact.id,
-        sender="user",
-        sender_name=contact.name,
-        text=message_text,
-        status="received",
-        whatsapp_message_id=incoming_message_id
-    )
-
-    db.add(user_msg)
-
-    contact.last_message = message_text
-    contact.last_message_at = datetime.datetime.utcnow()
-    contact.unread_count = (contact.unread_count or 0) + 1
-
-    db.commit()
-    db.refresh(user_msg)
-
-    # Extract lead information
-    lead_info = RAGEngine.check_and_extract_lead(
-        user_message=message_text,
-        phone_number=phone,
-        contact_name=contact.name,
-        db=db,
-        contact=contact
-    )
-
-    bot_msg = None
-    sources = []
-
-    # Generate and send reply only when AI mode is enabled
-    if contact.ai_mode == "auto":
-
-        docs = RAGEngine.retrieve_relevant_documents(
-            message_text,
-            db
+    try:
+        # 1. Find or create contact
+        contact = (
+            db.query(WhatsAppContact)
+            .filter(WhatsAppContact.phone_number == phone)
+            .first()
         )
 
-        reply_text, sources = RAGEngine.generate_grounded_response(
-            message_text,
-            docs,
-            contact.name
-        )
+        if contact is None:
+            contact = WhatsAppContact(
+                phone_number=phone,
+                name=customer_name or "WhatsApp User",
+                status="active",
+                ai_mode="auto",
+                unread_count=0
+            )
+            db.add(contact)
+            db.flush()
 
-        # Save bot reply before sending
-        bot_msg = WhatsAppMessage(
-            contact_id=contact.id,
-            sender="bot",
-            sender_name="LeadFlow RAG Bot",
-            text=reply_text,
-            rag_sources=json.dumps(sources),
-            status="pending"
-        )
+        elif customer_name and customer_name != "WhatsApp User":
+            contact.name = customer_name
 
-        db.add(bot_msg)
-
-        contact.last_message = reply_text
-        contact.last_message_at = datetime.datetime.utcnow()
-
-        db.commit()
-        db.refresh(bot_msg)
-
-        # Send reply through Meta Cloud API
-        result = send_whatsapp_cloud_api_message(
-            phone,
-            reply_text
-        )
-
-        if result is not None and result.get("success"):
-            bot_msg.status = "sent"
-            bot_msg.whatsapp_message_id = result.get("message_id")
-            bot_msg.error_details = None
-
-        elif result is None:
-            bot_msg.status = "simulated"
-
-        else:
-            bot_msg.status = "failed"
-            bot_msg.error_details = result.get(
-                "error",
-                "WhatsApp API failed"
+        # 2. Prevent duplicate incoming messages
+        if incoming_message_id:
+            existing_message = (
+                db.query(WhatsAppMessage)
+                .filter(
+                    WhatsAppMessage.whatsapp_message_id
+                    == incoming_message_id
+                )
+                .first()
             )
 
+            if existing_message:
+                return {
+                    "success": True,
+                    "duplicate": True,
+                    "contact_id": contact.id,
+                    "message": "Duplicate message ignored"
+                }
+
+        # 3. Save incoming customer message
+        user_msg = WhatsAppMessage(
+            contact_id=contact.id,
+            sender="user",
+            sender_name=contact.name,
+            text=message_text,
+            status="received",
+            whatsapp_message_id=incoming_message_id
+        )
+
+        db.add(user_msg)
+
+        contact.last_message = message_text
+        contact.last_message_at = datetime.datetime.utcnow()
+        contact.unread_count = (contact.unread_count or 0) + 1
+
         db.commit()
+        db.refresh(user_msg)
 
-    return {
-        "contact_id": contact.id,
-        "user_message_id": user_msg.id,
-        "bot_reply": bot_msg.text if bot_msg else None,
-        "sources": sources,
-        "lead_info": lead_info
-    }
+        # 4. Extract lead information
+        lead_info = RAGEngine.check_and_extract_lead(
+            user_message=message_text,
+            phone_number=phone,
+            contact_name=contact.name,
+            db=db,
+            contact=contact
+        )
 
+        bot_msg = None
+        sources = []
+
+        # 5. Generate RAG reply when AI mode is enabled
+        if contact.ai_mode == "auto":
+
+            docs = RAGEngine.retrieve_relevant_documents(
+                message_text,
+                db
+            )
+
+            reply_text, sources = RAGEngine.generate_grounded_response(
+                message_text,
+                docs,
+                contact.name
+            )
+
+            # 6. Save bot reply
+            bot_msg = WhatsAppMessage(
+                contact_id=contact.id,
+                sender="bot",
+                sender_name="LeadFlow RAG Bot",
+                text=reply_text,
+                rag_sources=json.dumps(sources),
+                status="pending"
+            )
+
+            db.add(bot_msg)
+
+            contact.last_message = reply_text
+            contact.last_message_at = datetime.datetime.utcnow()
+
+            db.commit()
+            db.refresh(bot_msg)
+
+            # 7. Send reply through WhatsApp Cloud API
+            result = send_whatsapp_cloud_api_message(
+                phone,
+                reply_text
+            )
+
+            if result and result.get("success"):
+                bot_msg.status = "sent"
+                bot_msg.whatsapp_message_id = result.get("message_id")
+                bot_msg.error_details = None
+
+            elif result is None:
+                bot_msg.status = "simulated"
+
+            else:
+                bot_msg.status = "failed"
+                bot_msg.error_details = result.get(
+                    "error",
+                    "WhatsApp API failed"
+                )
+
+            db.commit()
+
+        return {
+            "success": True,
+            "contact_id": contact.id,
+            "user_message_id": user_msg.id,
+            "bot_reply": bot_msg.text if bot_msg else None,
+            "sources": sources,
+            "lead_info": lead_info
+        }
+
+    except Exception:
+        db.rollback()
+        raise
 
 
 # -------------------------------------------------------------
