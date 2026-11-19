@@ -150,7 +150,7 @@ def send_whatsapp_cloud_api_message(to_phone: str, text: str) -> Optional[dict]:
             "error": "WhatsApp credentials missing"
         }
 
-    url = f"https://graph.facebook.com/v21.0/{phone_id}/messages"
+    url = f"https://graph.facebook.com/{os.getenv('GRAPH_API_VERSION', 'v21.0')}/{phone_id}/messages"
 
     headers = {
         "Authorization": f"Bearer {token}",
@@ -365,286 +365,238 @@ def verify_whatsapp_webhook(
     raise HTTPException(status_code=403, detail="Webhook verification failed")
 
 
+# ---------------- Webhook debug buffer (in-memory, last 20 events) ----------------
+import hmac
+import hashlib
+import traceback
+from collections import deque
+
+_WEBHOOK_EVENTS = deque(maxlen=20)
+
+
+def _log(step: str, msg: str):
+    """Every log line is prefixed so you can search Render logs for 'WA-STEP'."""
+    print(f"[WA-STEP {step}] {msg}", flush=True)
+
+
+def _check_signature(raw_body: bytes, header: Optional[str]) -> str:
+    """Returns 'valid' | 'invalid' | 'missing-header' | 'no-secret-configured'."""
+    secret = os.getenv("WHATSAPP_APP_SECRET")
+    if not secret:
+        return "no-secret-configured"
+    if not header or not header.startswith("sha256="):
+        return "missing-header"
+    expected = hmac.new(secret.encode(), raw_body, hashlib.sha256).hexdigest()
+    return "valid" if hmac.compare_digest(expected, header.split("=", 1)[1]) else "invalid"
+
+
+def _extract_text(msg: dict) -> Optional[str]:
+    """Handles text + button/interactive replies instead of silently skipping them."""
+    mtype = msg.get("type")
+    if mtype == "text":
+        return (msg.get("text", {}).get("body") or "").strip()
+    if mtype == "button":
+        return (msg.get("button", {}).get("text") or "").strip()
+    if mtype == "interactive":
+        inter = msg.get("interactive", {})
+        reply = inter.get("button_reply") or inter.get("list_reply") or {}
+        return (reply.get("title") or "").strip()
+    return None
+
+
 @app.post("/webhook")
-async def receive_whatsapp_webhook(
-    request: Request,
-    db: Session = Depends(get_db)
-):
-    data = await request.json()
+async def receive_whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
+    # STEP 1: read raw body + signature
+    raw = await request.body()
+    sig_state = _check_signature(raw, request.headers.get("X-Hub-Signature-256"))
+    _log("1-RECEIVED", f"bytes={len(raw)} signature={sig_state}")
+    if sig_state == "invalid" and os.getenv("ENFORCE_SIGNATURE", "false").lower() == "true":
+        _log("1-RECEIVED", "REJECTED: invalid signature (WHATSAPP_APP_SECRET mismatch)")
+        raise HTTPException(status_code=403, detail="Invalid signature")
 
-    print("[WhatsApp Webhook] Event received")
+    # STEP 2: parse JSON
     try:
-        event_count = sum(len(entry.get("changes", [])) for entry in data.get("entry", []))
-        inbound_count = sum(
-            len(change.get("value", {}).get("messages", []))
-            for entry in data.get("entry", [])
-            for change in entry.get("changes", [])
-        )
-        status_count = sum(
-            len(change.get("value", {}).get("statuses", []))
-            for entry in data.get("entry", [])
-            for change in entry.get("changes", [])
-        )
-        print(
-            f"[WhatsApp Webhook] changes={event_count}, "
-            f"incoming_messages={inbound_count}, status_updates={status_count}"
-        )
-    except Exception:
-        print("[WhatsApp Webhook] Could not summarize event payload")
+        data = json.loads(raw.decode("utf-8") or "{}")
+    except Exception as e:
+        _log("2-PARSE", f"FAILED to parse JSON: {e}")
+        return {"status": "ignored"}
 
-    try:
-        for entry in data.get("entry", []):
-            for change in entry.get("changes", []):
-                value = change.get("value", {})
+    summary = {"time": datetime.datetime.utcnow().isoformat(), "signature": sig_state,
+               "messages": [], "statuses": [], "errors": []}
+    _WEBHOOK_EVENTS.append(summary)
 
-                # 1. Process outgoing message status updates
-                for status_item in value.get("statuses", []):
-                    whatsapp_message_id = status_item.get("id")
-                    meta_status = status_item.get("status")
+    # STEP 3: walk entry -> changes -> value
+    for entry in data.get("entry", []):
+        for change in entry.get("changes", []):
+            field = change.get("field")
+            value = change.get("value", {}) or {}
+            _log("3-CHANGE", f"field={field} keys={list(value.keys())}")
 
-                    if not whatsapp_message_id or not meta_status:
-                        continue
+            # STEP 4: status updates (sent/delivered/read/failed)
+            for st in value.get("statuses", []):
+                try:
+                    wa_id, st_name = st.get("id"), st.get("status")
+                    summary["statuses"].append({"id": wa_id, "status": st_name})
+                    _log("4-STATUS", f"id={wa_id} status={st_name} errors={st.get('errors')}")
+                    m = db.query(WhatsAppMessage).filter(WhatsAppMessage.whatsapp_message_id == wa_id).first()
+                    if m and st_name in ("sent", "delivered", "read", "failed"):
+                        m.status = st_name
+                        if st_name == "failed":
+                            m.error_details = json.dumps(st.get("errors", []))
+                    elif not m:
+                        _log("4-STATUS", "no DB message with this id (ok if sent outside this app)")
+                    db.commit()
+                except Exception as e:
+                    db.rollback()
+                    summary["errors"].append(f"status: {e}")
+                    _log("4-STATUS", f"ERROR {e}\n{traceback.format_exc()}")
 
-                    message = db.query(WhatsAppMessage).filter(
-                        WhatsAppMessage.whatsapp_message_id == whatsapp_message_id
-                    ).first()
+            # STEP 5: incoming customer messages
+            contacts = value.get("contacts", [])
+            for msg in value.get("messages", []):
+                mid, phone, mtype = msg.get("id"), msg.get("from"), msg.get("type")
+                _log("5-INCOMING", f"id={mid} from={phone} type={mtype}")
+                text = _extract_text(msg)
+                if not mid or not phone:
+                    _log("5-INCOMING", "SKIPPED: missing id or from")
+                    continue
+                if not text:
+                    _log("5-INCOMING", f"SKIPPED: type '{mtype}' has no text (image/audio/etc.)")
+                    summary["errors"].append(f"skipped type {mtype}")
+                    continue
+                name = "WhatsApp User"
+                for c in contacts:
+                    if c.get("wa_id") == phone:
+                        name = c.get("profile", {}).get("name", name)
+                summary["messages"].append({"id": mid, "from": phone, "text": text[:80]})
+                try:
+                    result = _process_incoming_whatsapp_message(
+                        phone=phone, customer_name=name, message_text=text,
+                        incoming_message_id=mid, db=db)
+                    _log("5-INCOMING", f"DONE result={ {k: v for k, v in result.items() if k != 'lead_info'} }")
+                except Exception as e:
+                    db.rollback()
+                    summary["errors"].append(f"process: {e}")
+                    _log("5-INCOMING", f"ERROR while processing: {e}\n{traceback.format_exc()}")
 
-                    if message:
-                        if meta_status in ["sent", "delivered", "read", "failed"]:
-                            message.status = meta_status
-
-                        if meta_status == "failed":
-                            errors = status_item.get("errors", [])
-                            message.error_details = json.dumps(errors)
-
-                        print(
-                            f"[WhatsApp Status] "
-                            f"{whatsapp_message_id}: {meta_status}"
-                        )
-
-                # 2. Process incoming customer messages
-                messages = value.get("messages", [])
-                contacts = value.get("contacts", [])
-
-                for incoming_message in messages:
-                    incoming_message_id = incoming_message.get("id")
-
-                    if not incoming_message_id:
-                        continue
-
-                    if incoming_message.get("type") != "text":
-                        continue
-
-                    # Prevent duplicate incoming messages
-                    existing_message = db.query(WhatsAppMessage).filter(
-                        WhatsAppMessage.whatsapp_message_id == incoming_message_id
-                    ).first()
-
-                    if existing_message:
-                        print(
-                            f"[WhatsApp] Duplicate message ignored: "
-                            f"{incoming_message_id}"
-                        )
-                        continue
-
-                    phone = incoming_message.get("from")
-
-                    message_text = incoming_message.get(
-                        "text", {}
-                    ).get("body", "").strip()
-
-                    print(
-                        f"[WhatsApp Webhook] Incoming text event "
-                        f"message_id={incoming_message_id}, "
-                        f"phone_present={bool(phone)}, text_present={bool(message_text)}"
-                    )
-
-                    if not phone or not message_text:
-                        continue
-
-                    customer_name = "WhatsApp User"
-
-                    for item in contacts:
-                        if item.get("wa_id") == phone:
-                            customer_name = item.get(
-                                "profile", {}
-                            ).get("name", customer_name)
-                            break
-
-                    _process_incoming_whatsapp_message(
-                        phone=phone,
-                        customer_name=customer_name,
-                        message_text=message_text,
-                        incoming_message_id=incoming_message_id,
-                        db=db
-                    )
-
-        db.commit()
-
-    except Exception as error:
-        db.rollback()
-
-        print("WhatsApp webhook database error:", error)
-
-        raise HTTPException(
-            status_code=500,
-            detail="Message processing failed"
-        )
-
+    # Always 200 so Meta does not keep retrying; errors are visible in logs + /api/whatsapp/debug
     return {"status": "received"}
 
 
 def _process_incoming_whatsapp_message(
-    phone: str,
-    customer_name: str,
-    message_text: str,
-    db: Session,
+    phone: str, customer_name: str, message_text: str, db: Session,
     incoming_message_id: Optional[str] = None
 ) -> dict:
-    """
-    Process incoming WhatsApp messages and generate RAG-based replies.
-    """
-
+    """Save incoming message -> (optional) lead extraction -> RAG reply -> send via Meta."""
     try:
-        # 1. Find or create contact
-        contact = (
-            db.query(WhatsAppContact)
-            .filter(WhatsAppContact.phone_number == phone)
-            .first()
-        )
-
+        # A. contact
+        contact = db.query(WhatsAppContact).filter(WhatsAppContact.phone_number == phone).first()
         if contact is None:
-            contact = WhatsAppContact(
-                phone_number=phone,
-                name=customer_name or "WhatsApp User",
-                status="active",
-                ai_mode="auto",
-                unread_count=0
-            )
+            contact = WhatsAppContact(phone_number=phone, name=customer_name or "WhatsApp User",
+                                      status="active", ai_mode="auto", unread_count=0)
             db.add(contact)
             db.flush()
+            _log("A-CONTACT", f"created contact id={contact.id} phone={phone}")
+        else:
+            if customer_name and customer_name != "WhatsApp User":
+                contact.name = customer_name
+            _log("A-CONTACT", f"found contact id={contact.id} ai_mode={contact.ai_mode}")
 
-        elif customer_name and customer_name != "WhatsApp User":
-            contact.name = customer_name
+        # B. duplicate check
+        if incoming_message_id and db.query(WhatsAppMessage).filter(
+                WhatsAppMessage.whatsapp_message_id == incoming_message_id).first():
+            _log("B-DUPLICATE", f"already stored {incoming_message_id}, ignoring")
+            return {"success": True, "duplicate": True, "contact_id": contact.id}
 
-        # 2. Prevent duplicate incoming messages
-        if incoming_message_id:
-            existing_message = (
-                db.query(WhatsAppMessage)
-                .filter(
-                    WhatsAppMessage.whatsapp_message_id
-                    == incoming_message_id
-                )
-                .first()
-            )
-
-            if existing_message:
-                return {
-                    "success": True,
-                    "duplicate": True,
-                    "contact_id": contact.id,
-                    "message": "Duplicate message ignored"
-                }
-
-        # 3. Save incoming customer message
-        user_msg = WhatsAppMessage(
-            contact_id=contact.id,
-            sender="user",
-            sender_name=contact.name,
-            text=message_text,
-            status="received",
-            whatsapp_message_id=incoming_message_id
-        )
-
+        # C. save incoming message (this is what makes it show in the dashboard)
+        user_msg = WhatsAppMessage(contact_id=contact.id, sender="user", sender_name=contact.name,
+                                   text=message_text, status="received",
+                                   whatsapp_message_id=incoming_message_id)
         db.add(user_msg)
-
         contact.last_message = message_text
         contact.last_message_at = datetime.datetime.utcnow()
         contact.unread_count = (contact.unread_count or 0) + 1
-
         db.commit()
         db.refresh(user_msg)
+        _log("C-SAVED", f"user message saved db_id={user_msg.id}")
 
-        # 4. Extract lead information
-        lead_info = RAGEngine.check_and_extract_lead(
-            user_message=message_text,
-            phone_number=phone,
-            contact_name=contact.name,
-            db=db,
-            contact=contact
-        )
+        # D. lead extraction - must NEVER block the reply
+        lead_info = None
+        try:
+            lead_info = RAGEngine.check_and_extract_lead(
+                user_message=message_text, phone_number=phone,
+                contact_name=contact.name, db=db, contact=contact)
+            _log("D-LEAD", f"ok {lead_info}")
+        except Exception as e:
+            db.rollback()
+            _log("D-LEAD", f"FAILED (reply will still be sent): {e}\n{traceback.format_exc()}")
+            contact = db.query(WhatsAppContact).filter(WhatsAppContact.phone_number == phone).first()
 
-        bot_msg = None
-        sources = []
+        # E. AI reply
+        if contact.ai_mode != "auto":
+            _log("E-AI", f"SKIPPED: ai_mode={contact.ai_mode} (set to 'auto' to enable bot)")
+            return {"success": True, "contact_id": contact.id, "user_message_id": user_msg.id,
+                    "bot_reply": None, "lead_info": lead_info}
 
-        # 5. Generate RAG reply when AI mode is enabled
-        if contact.ai_mode == "auto":
+        docs = RAGEngine.retrieve_relevant_documents(message_text, db)
+        reply_text, sources = RAGEngine.generate_grounded_response(message_text, docs, contact.name)
+        _log("E-AI", f"reply generated ({len(reply_text)} chars, {len(docs)} docs)")
 
-            docs = RAGEngine.retrieve_relevant_documents(
-                message_text,
-                db
-            )
+        bot_msg = WhatsAppMessage(contact_id=contact.id, sender="bot", sender_name="LeadFlow RAG Bot",
+                                  text=reply_text, rag_sources=json.dumps(sources), status="pending")
+        db.add(bot_msg)
+        contact.last_message = reply_text
+        contact.last_message_at = datetime.datetime.utcnow()
+        db.commit()
+        db.refresh(bot_msg)
 
-            reply_text, sources = RAGEngine.generate_grounded_response(
-                message_text,
-                docs,
-                contact.name
-            )
+        # F. send through Meta
+        result = send_whatsapp_cloud_api_message(phone, reply_text)
+        _log("F-SEND", f"meta result success={result and result.get('success')} "
+                       f"error={(result or {}).get('error')}")
+        if result and result.get("success"):
+            bot_msg.status = "sent"
+            bot_msg.whatsapp_message_id = result.get("message_id")
+            bot_msg.error_details = None
+        else:
+            bot_msg.status = "failed"
+            bot_msg.error_details = (result or {}).get("error", "No response from WhatsApp API")
+        db.commit()
 
-            # 6. Save bot reply
-            bot_msg = WhatsAppMessage(
-                contact_id=contact.id,
-                sender="bot",
-                sender_name="LeadFlow RAG Bot",
-                text=reply_text,
-                rag_sources=json.dumps(sources),
-                status="pending"
-            )
-
-            db.add(bot_msg)
-
-            contact.last_message = reply_text
-            contact.last_message_at = datetime.datetime.utcnow()
-
-            db.commit()
-            db.refresh(bot_msg)
-
-           # 7. Send reply through WhatsApp Cloud API
-            print(f"[WhatsApp DEBUG] Sending reply to: {phone}")
-            print(f"[WhatsApp DEBUG] AI reply: {reply_text[:100]}")
-            
-            result = send_whatsapp_cloud_api_message(
-                phone,
-                reply_text
-            )
-            
-            print(f"[WhatsApp DEBUG] Meta API result: {result}")
-            
-            if result and result.get("success"):
-                bot_msg.status = "sent"
-                bot_msg.whatsapp_message_id = result.get("message_id")
-                bot_msg.error_details = None
-            
-            else:
-                bot_msg.status = "failed"
-                bot_msg.error_details = (
-                    result.get("error", "WhatsApp API failed")
-                    if result else "No response from WhatsApp API"
-                )
-            
-            db.commit()
-        return {
-            "success": True,
-            "contact_id": contact.id,
-            "user_message_id": user_msg.id,
-            "bot_reply": bot_msg.text if bot_msg else None,
-            "sources": sources,
-            "lead_info": lead_info
-        }
-
+        return {"success": True, "contact_id": contact.id, "user_message_id": user_msg.id,
+                "bot_reply": reply_text, "sources": sources, "lead_info": lead_info}
     except Exception:
         db.rollback()
         raise
+
+
+# ---------------- Debug endpoints (set DEBUG_KEY env var to enable) ----------------
+def _require_debug_key(key: Optional[str]):
+    expected = os.getenv("DEBUG_KEY")
+    if not expected or key != expected:
+        raise HTTPException(status_code=404, detail="Not found")
+
+
+@app.get("/api/whatsapp/debug/events")
+def debug_last_events(key: Optional[str] = Query(None)):
+    """Last 20 webhook events as the server saw them. Open: /api/whatsapp/debug/events?key=<DEBUG_KEY>"""
+    _require_debug_key(key)
+    return list(_WEBHOOK_EVENTS)
+
+
+@app.get("/api/whatsapp/debug/health")
+def debug_health(key: Optional[str] = Query(None)):
+    """Shows which settings are present (never prints secret values)."""
+    _require_debug_key(key)
+    tok = os.getenv("WHATSAPP_ACCESS_TOKEN") or ""
+    return {
+        "WHATSAPP_ACCESS_TOKEN": f"set ({len(tok)} chars)" if tok else "MISSING",
+        "WHATSAPP_PHONE_NUMBER_ID": os.getenv("WHATSAPP_PHONE_NUMBER_ID") or "MISSING",
+        "WHATSAPP_VERIFY_TOKEN": "set" if os.getenv("WHATSAPP_VERIFY_TOKEN") else "MISSING (default used)",
+        "WHATSAPP_APP_SECRET": "set" if os.getenv("WHATSAPP_APP_SECRET") else "missing (signature not checked)",
+        "GRAPH_API_VERSION": os.getenv("GRAPH_API_VERSION", "v21.0"),
+        "contacts_in_db": SessionLocal().query(WhatsAppContact).count(),
+    }
 
 
 # -------------------------------------------------------------
