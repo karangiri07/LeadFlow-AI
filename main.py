@@ -390,6 +390,18 @@ def _check_signature(raw_body: bytes, header: Optional[str]) -> str:
     return "valid" if hmac.compare_digest(expected, header.split("=", 1)[1]) else "invalid"
 
 
+def _norm_phone(p: Optional[str]) -> str:
+    """Digits only. Meta sends '918767911758', admin panel may store '+918767911758'."""
+    return "".join(ch for ch in (p or "") if ch.isdigit())
+
+
+def _find_contact_by_phone(db: Session, phone: str):
+    digits = _norm_phone(phone)
+    return (db.query(WhatsAppContact)
+              .filter(WhatsAppContact.phone_number.in_([digits, "+" + digits, phone]))
+              .first())
+
+
 def _extract_text(msg: dict) -> Optional[str]:
     """Handles text + button/interactive replies instead of silently skipping them."""
     mtype = msg.get("type")
@@ -490,9 +502,9 @@ def _process_incoming_whatsapp_message(
     """Save incoming message -> (optional) lead extraction -> RAG reply -> send via Meta."""
     try:
         # A. contact
-        contact = db.query(WhatsAppContact).filter(WhatsAppContact.phone_number == phone).first()
+        contact = _find_contact_by_phone(db, phone)
         if contact is None:
-            contact = WhatsAppContact(phone_number=phone, name=customer_name or "WhatsApp User",
+            contact = WhatsAppContact(phone_number=_norm_phone(phone) or phone, name=customer_name or "WhatsApp User",
                                       status="active", ai_mode="auto", unread_count=0)
             db.add(contact)
             db.flush()
@@ -530,7 +542,7 @@ def _process_incoming_whatsapp_message(
         except Exception as e:
             db.rollback()
             _log("D-LEAD", f"FAILED (reply will still be sent): {e}\n{traceback.format_exc()}")
-            contact = db.query(WhatsAppContact).filter(WhatsAppContact.phone_number == phone).first()
+            contact = _find_contact_by_phone(db, phone)
 
         # E. AI reply
         if contact.ai_mode != "auto":
@@ -666,7 +678,7 @@ def get_contact_messages(contact_id: int, db: Session = Depends(get_db)):
             "text": m.text,
             "status": m.status,
             "rag_sources": sources_list,
-            "created_at": m.created_at.strftime("%H:%M") if m.created_at else ""
+            "created_at": (m.created_at.isoformat() + "Z") if m.created_at else ""
         })
     return res
 
