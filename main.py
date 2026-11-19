@@ -372,7 +372,25 @@ async def receive_whatsapp_webhook(
 ):
     data = await request.json()
 
-    print("WhatsApp Webhook Received:", json.dumps(data, indent=2))
+    print("[WhatsApp Webhook] Event received")
+    try:
+        event_count = sum(len(entry.get("changes", [])) for entry in data.get("entry", []))
+        inbound_count = sum(
+            len(change.get("value", {}).get("messages", []))
+            for entry in data.get("entry", [])
+            for change in entry.get("changes", [])
+        )
+        status_count = sum(
+            len(change.get("value", {}).get("statuses", []))
+            for entry in data.get("entry", [])
+            for change in entry.get("changes", [])
+        )
+        print(
+            f"[WhatsApp Webhook] changes={event_count}, "
+            f"incoming_messages={inbound_count}, status_updates={status_count}"
+        )
+    except Exception:
+        print("[WhatsApp Webhook] Could not summarize event payload")
 
     try:
         for entry in data.get("entry", []):
@@ -434,6 +452,12 @@ async def receive_whatsapp_webhook(
                     message_text = incoming_message.get(
                         "text", {}
                     ).get("body", "").strip()
+
+                    print(
+                        f"[WhatsApp Webhook] Incoming text event "
+                        f"message_id={incoming_message_id}, "
+                        f"phone_present={bool(phone)}, text_present={bool(message_text)}"
+                    )
 
                     if not phone or not message_text:
                         continue
