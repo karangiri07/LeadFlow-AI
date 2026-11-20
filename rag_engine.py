@@ -96,6 +96,15 @@ def seed_default_knowledge(db: Session):
         db.commit()
 
 
+_GREETING_RE = re.compile(
+    r"^\s*(h+i+|h+e+l+o+|h+e+y+|hlo+|helo+|hola|namaste|namaskar|good\s*(morning|afternoon|evening|night)|start|menu|help)\W*$"
+)
+_OVERVIEW_RE = re.compile(
+    r"(how can you help|what can you do|what do you do|your services|what services|about (you|your|company|leadflow)|"
+    r"tell me about|help me|kya karte|kya kar sakte|kaise help|madad)"
+)
+
+
 def _tokenize(text: str) -> List[str]:
     """Tokenize and clean words for retrieval."""
     clean = re.sub(r'[^a-zA-Z0-9\s]', ' ', text.lower())
@@ -205,7 +214,7 @@ class RAGEngine:
         msg_lower = user_message.strip().lower()
 
         # Handle greetings
-        if msg_lower in ["hi", "hello", "hey", "hola", "namaste", "good morning", "good evening", "start"]:
+        if _GREETING_RE.match(msg_lower) or _OVERVIEW_RE.search(msg_lower):
             greeting_resp = (
                 f"👋 Hello {clean_name}! Welcome to *LeadFlow AI*.\n\n"
                 "I am your automated AI assistant powered by our Knowledge Base. "
@@ -221,9 +230,9 @@ class RAGEngine:
         # If no relatable docs matched
         if not retrieved_docs or (len(retrieved_docs) == 1 and retrieved_docs[0]["score"] < 0.2):
             fallback_resp = (
-                f"Hello {clean_name}! Thank you for reaching out to *LeadFlow AI*.\n\n"
-                "I don't have the exact relatable information on that specific topic in my current knowledge base, "
-                "but I've notified our team! You can also ask me about:\n"
+                f"Hi {clean_name}! Thanks for your message 😊\n\n"
+                "I couldn't find a precise answer to that, so I've noted it for our team. "
+                "Meanwhile, I can tell you about:\n"
                 "• *Our AI Automation & LeadFlow services*\n"
                 "• *Web development packages & tech stack*\n"
                 "• *Pricing tiers & 14-day refund policy*\n\n"

@@ -500,6 +500,9 @@ async def receive_whatsapp_webhook(request: Request, db: Session = Depends(get_d
 
 def _generate_reply(db: Session, contact, current_msg_id: int, message_text: str, docs: list):
     """LLM + RAG reply when ANTHROPIC_API_KEY is set; otherwise (or on any failure) the rule-based reply."""
+    if not llm_enabled():
+        _log("E-AI", "LLM is OFF -> using rule-based reply. Reason: ANTHROPIC_API_KEY missing in Render env "
+                     "(or USE_LLM=false). Set ANTHROPIC_API_KEY to enable the AI chatbot.")
     if llm_enabled():
         try:
             all_docs = db.query(KnowledgeDocument).filter(KnowledgeDocument.is_active == True).all()
@@ -637,6 +640,8 @@ def debug_health(key: Optional[str] = Query(None)):
         "WHATSAPP_VERIFY_TOKEN": "set" if os.getenv("WHATSAPP_VERIFY_TOKEN") else "MISSING (default used)",
         "WHATSAPP_APP_SECRET": "set" if os.getenv("WHATSAPP_APP_SECRET") else "missing (signature not checked)",
         "GRAPH_API_VERSION": os.getenv("GRAPH_API_VERSION", "v21.0"),
+        "LLM_CHATBOT": "ENABLED" if llm_enabled() else "OFF (set ANTHROPIC_API_KEY)",
+        "ANTHROPIC_MODEL": os.getenv("ANTHROPIC_MODEL", "claude-haiku-5-5"),
         "contacts_in_db": SessionLocal().query(WhatsAppContact).count(),
     }
 
