@@ -41,3 +41,18 @@ Dashboard mein "pricing" LEFT mein + bot jawab RIGHT mein aana chahiye, aur What
 ## Security
 Purane token + app secret rotate karo. .env/.venv/.git kabhi push/share mat karo.
 Temporary token 24h mein expire hota hai: Meta Business Settings > System User se permanent token banao.
+
+---
+# AI Chatbot mode (LLM + RAG)
+Bot ab fixed template ki jagah Claude se natural reply banata hai, sirf aapke Knowledge Base ke data se.
+
+Setup:
+1. console.anthropic.com -> API Keys -> key banao (alag, secret).
+2. Render Environment mein add karo:
+   ANTHROPIC_API_KEY = <key>
+   ANTHROPIC_MODEL   = claude-haiku-5-5   (model naam console/docs se confirm kar lena)
+3. Dashboard -> RAG Knowledge Base mein apni real info daalo (services, pricing, FAQ, timing, contact).
+   Bot jitna KB mein hoga utna hi bolega; KB mein nahi hoga to team follow-up bolega.
+
+Logs mein dekho:  [WA-STEP E-AI] engine=llm   (engine=rules matlab fallback chala: key/model/API error, upar [LLM] line padho)
+Band karna ho to USE_LLM=false.

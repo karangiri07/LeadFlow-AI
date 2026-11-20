@@ -17,6 +17,7 @@ from models import Lead, WhatsAppContact, WhatsAppMessage, KnowledgeDocument, Wh
 from ai_agent import calculate_lead_score, calculate_priority
 from automation import send_lead_to_n8n
 from rag_engine import seed_default_knowledge, RAGEngine
+from llm_engine import llm_enabled, generate_llm_reply
 
 # Initialize tables
 Base.metadata.create_all(bind=engine)
@@ -497,6 +498,31 @@ async def receive_whatsapp_webhook(request: Request, db: Session = Depends(get_d
     return {"status": "received"}
 
 
+def _generate_reply(db: Session, contact, current_msg_id: int, message_text: str, docs: list):
+    """LLM + RAG reply when ANTHROPIC_API_KEY is set; otherwise (or on any failure) the rule-based reply."""
+    if llm_enabled():
+        try:
+            all_docs = db.query(KnowledgeDocument).filter(KnowledgeDocument.is_active == True).all()
+            kb = [{"id": d.id, "title": d.title, "category": d.category, "content": d.content} for d in all_docs]
+            if sum(len(d["content"]) for d in kb) > 9000:      # big KB -> only the most relevant chunks
+                kb = RAGEngine.retrieve_relevant_documents(message_text, db, top_k=6)
+            prev = (db.query(WhatsAppMessage)
+                      .filter(WhatsAppMessage.contact_id == contact.id, WhatsAppMessage.id != current_msg_id)
+                      .order_by(WhatsAppMessage.created_at.desc()).limit(8).all())
+            history = [{"role": "user" if m.sender == "user" else "assistant", "content": m.text or ""}
+                       for m in reversed(prev)]
+            text = generate_llm_reply(message_text, history, kb, contact.name)
+            if text:
+                src = [{"id": d["id"], "title": d["title"], "category": d["category"], "score": d.get("score", 1.0)}
+                       for d in (docs or kb)[:3]]
+                return text, src, "llm"
+            _log("E-AI", "LLM returned nothing, using rule-based fallback")
+        except Exception as e:
+            _log("E-AI", f"LLM step failed, using rule-based fallback: {e}\n{traceback.format_exc()}")
+    reply_text, sources = RAGEngine.generate_grounded_response(message_text, docs, contact.name)
+    return reply_text, sources, "rules"
+
+
 def _process_incoming_whatsapp_message(
     phone: str, customer_name: str, message_text: str, db: Session,
     incoming_message_id: Optional[str] = None,
@@ -554,8 +580,8 @@ def _process_incoming_whatsapp_message(
                     "bot_reply": None, "lead_info": lead_info}
 
         docs = RAGEngine.retrieve_relevant_documents(message_text, db)
-        reply_text, sources = RAGEngine.generate_grounded_response(message_text, docs, contact.name)
-        _log("E-AI", f"reply generated ({len(reply_text)} chars, {len(docs)} docs)")
+        reply_text, sources, engine = _generate_reply(db, contact, user_msg.id, message_text, docs)
+        _log("E-AI", f"engine={engine} reply generated ({len(reply_text)} chars, {len(docs)} keyword docs)")
 
         bot_msg = WhatsAppMessage(contact_id=contact.id, sender="bot", sender_name="LeadFlow RAG Bot",
                                   text=reply_text, rag_sources=json.dumps(sources), status="pending")
