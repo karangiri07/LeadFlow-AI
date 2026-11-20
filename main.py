@@ -138,9 +138,10 @@ def _seed_sample_whatsapp_if_empty(db: Session):
         db.commit()
 
 
-def send_whatsapp_cloud_api_message(to_phone: str, text: str) -> Optional[dict]:
+def send_whatsapp_cloud_api_message(to_phone: str, text: str, from_phone_number_id: Optional[str] = None) -> Optional[dict]:
     token = os.getenv("WHATSAPP_ACCESS_TOKEN")
-    phone_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID")
+    # Reply from the same business number that received the message (falls back to env default)
+    phone_id = from_phone_number_id or os.getenv("WHATSAPP_PHONE_NUMBER_ID")
 
     if not token or not phone_id:
         print("[WhatsApp] Credentials missing.")
@@ -484,7 +485,8 @@ async def receive_whatsapp_webhook(request: Request, db: Session = Depends(get_d
                 try:
                     result = _process_incoming_whatsapp_message(
                         phone=phone, customer_name=name, message_text=text,
-                        incoming_message_id=mid, db=db)
+                        incoming_message_id=mid, db=db,
+                        receiving_phone_number_id=(value.get('metadata') or {}).get('phone_number_id'))
                     _log("5-INCOMING", f"DONE result={ {k: v for k, v in result.items() if k != 'lead_info'} }")
                 except Exception as e:
                     db.rollback()
@@ -497,7 +499,8 @@ async def receive_whatsapp_webhook(request: Request, db: Session = Depends(get_d
 
 def _process_incoming_whatsapp_message(
     phone: str, customer_name: str, message_text: str, db: Session,
-    incoming_message_id: Optional[str] = None
+    incoming_message_id: Optional[str] = None,
+    receiving_phone_number_id: Optional[str] = None
 ) -> dict:
     """Save incoming message -> (optional) lead extraction -> RAG reply -> send via Meta."""
     try:
@@ -563,7 +566,8 @@ def _process_incoming_whatsapp_message(
         db.refresh(bot_msg)
 
         # F. send through Meta
-        result = send_whatsapp_cloud_api_message(phone, reply_text)
+        _log("F-SEND", f"replying from phone_number_id={receiving_phone_number_id or 'env default'}")
+        result = send_whatsapp_cloud_api_message(phone, reply_text, receiving_phone_number_id)
         _log("F-SEND", f"meta result success={result and result.get('success')} "
                        f"error={(result or {}).get('error')}")
         if result and result.get("success"):
